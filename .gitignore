@@ -1,0 +1,35 @@
+# Claude Code
+.claude/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Build outputs
+dist/
+.aws-sam/
+build/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
+# AWS SAM
+.aws-sam/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Python cache (build scripts)
+__pycache__/
+*.pyc
