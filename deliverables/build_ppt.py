@@ -1,20 +1,45 @@
+"""
+OnboardIQ Presentation — matches website design system exactly.
+
+Website palette (from index.css):
+  --bg-base:       #F7F6F3  (warm off-white — slide background)
+  --bg-surface:    #FFFFFF  (cards)
+  --bg-muted:      #EFEDE8  (subtle fills)
+  --bg-subtle:     #E8E5DE  (dividers)
+  --text-primary:  #1C1A17  (headings)
+  --text-secondary:#5C5852  (body)
+  --text-muted:    #8C8880  (captions)
+  --sage:          #4A7C6B  (primary accent)
+  --sage-light:    #EBF3EF  (sage chip bg)
+  --sage-dark:     #2E5A4D  (dark sage)
+  --amber:         #C97B2E  (secondary accent)
+  --amber-light:   #FDF3E5
+  --coral:         #C25042  (error/warning)
+  --blue:          #3D6B9E  (info)
+"""
+
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
-from pptx.util import Inches, Pt
-import copy
 
-# ── Palette ──────────────────────────────────────────────────────────────────
-BG_DARK      = RGBColor(0x0D, 0x0F, 0x14)   # near-black navy
-BG_CARD      = RGBColor(0x16, 0x1A, 0x24)   # card bg
-ACCENT_GREEN = RGBColor(0x3E, 0xD5, 0x8E)   # brand green
-ACCENT_TEAL  = RGBColor(0x22, 0xC5, 0xBF)   # teal
-ACCENT_GOLD  = RGBColor(0xF5, 0xC5, 0x18)   # gold highlight
-WHITE        = RGBColor(0xFF, 0xFF, 0xFF)
-LIGHT_GRAY   = RGBColor(0xB0, 0xB8, 0xCC)
-MID_GRAY     = RGBColor(0x4A, 0x52, 0x68)
-DIM          = RGBColor(0x2A, 0x30, 0x42)
+# ── Exact website palette ─────────────────────────────────────────────────────
+BG       = RGBColor(0xF7, 0xF6, 0xF3)   # --bg-base
+SURFACE  = RGBColor(0xFF, 0xFF, 0xFF)   # --bg-surface
+MUTED    = RGBColor(0xEF, 0xED, 0xE8)   # --bg-muted
+SUBTLE   = RGBColor(0xE8, 0xE5, 0xDE)   # --bg-subtle
+T1       = RGBColor(0x1C, 0x1A, 0x17)   # --text-primary
+T2       = RGBColor(0x5C, 0x58, 0x52)   # --text-secondary
+TM       = RGBColor(0x8C, 0x88, 0x80)   # --text-muted
+SAGE     = RGBColor(0x4A, 0x7C, 0x6B)   # --sage
+SAGE_L   = RGBColor(0xEB, 0xF3, 0xEF)   # --sage-light
+SAGE_D   = RGBColor(0x2E, 0x5A, 0x4D)   # --sage-dark
+AMBER    = RGBColor(0xC9, 0x7B, 0x2E)   # --amber
+AMBER_L  = RGBColor(0xFD, 0xF3, 0xE5)   # --amber-light
+CORAL    = RGBColor(0xC2, 0x50, 0x42)   # --coral
+CORAL_L  = RGBColor(0xFB, 0xF0, 0xEE)   # --coral-light
+BLUE     = RGBColor(0x3D, 0x6B, 0x9E)   # --blue
+BLUE_L   = RGBColor(0xEB, 0xF1, 0xF8)   # --blue-light
 
 W = Inches(13.33)
 H = Inches(7.5)
@@ -22,89 +47,81 @@ H = Inches(7.5)
 prs = Presentation()
 prs.slide_width  = W
 prs.slide_height = H
-blank = prs.slide_layouts[6]   # completely blank
+blank = prs.slide_layouts[6]
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-def add_rect(slide, x, y, w, h, fill=None, alpha=None, line=None, line_w=Pt(0)):
-    shape = slide.shapes.add_shape(1, x, y, w, h)
-    shape.line.fill.background()
+# ── Primitive helpers ─────────────────────────────────────────────────────────
+def rect(slide, x, y, w, h, fill=None, line=None, line_w=Pt(1)):
+    s = slide.shapes.add_shape(1, x, y, w, h)
     if fill:
-        shape.fill.solid()
-        shape.fill.fore_color.rgb = fill
+        s.fill.solid(); s.fill.fore_color.rgb = fill
     else:
-        shape.fill.background()
+        s.fill.background()
     if line:
-        shape.line.color.rgb = line
-        shape.line.width = line_w
+        s.line.color.rgb = line; s.line.width = line_w
     else:
-        shape.line.fill.background()
-    return shape
+        s.line.fill.background()
+    return s
 
-def add_text(slide, text, x, y, w, h, size=Pt(18), bold=False, color=WHITE,
-             align=PP_ALIGN.LEFT, italic=False, wrap=True):
-    tb = slide.shapes.add_textbox(x, y, w, h)
-    tb.word_wrap = wrap
-    tf = tb.text_frame
-    tf.word_wrap = wrap
-    p  = tf.paragraphs[0]
-    p.alignment = align
-    run = p.add_run()
-    run.text = text
-    run.font.size  = size
-    run.font.bold  = bold
-    run.font.color.rgb = color
-    run.font.italic = italic
-    return tb
-
-def add_multiline(slide, lines, x, y, w, h, size=Pt(14), color=LIGHT_GRAY,
-                  spacing=Pt(6), align=PP_ALIGN.LEFT):
+def txt(slide, text, x, y, w, h, size=Pt(13), bold=False, color=T1,
+        align=PP_ALIGN.LEFT, italic=False):
     tb = slide.shapes.add_textbox(x, y, w, h)
     tb.word_wrap = True
-    tf = tb.text_frame
-    tf.word_wrap = True
-    for i, (txt, bold, clr) in enumerate(lines):
-        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.alignment = align
-        p.space_after = spacing
-        run = p.add_run()
-        run.text = txt
-        run.font.size  = size
-        run.font.bold  = bold
-        run.font.color.rgb = clr or color
+    tf = tb.text_frame; tf.word_wrap = True
+    p  = tf.paragraphs[0]; p.alignment = align
+    r  = p.add_run(); r.text = text
+    r.font.size = size; r.font.bold = bold
+    r.font.color.rgb = color; r.font.italic = italic
     return tb
 
+def multiline(slide, rows, x, y, w, h, size=Pt(12), spacing=Pt(4)):
+    """rows = [(text, bold, color)]"""
+    tb = slide.shapes.add_textbox(x, y, w, h)
+    tb.word_wrap = True; tf = tb.text_frame; tf.word_wrap = True
+    for i, (t, b, c) in enumerate(rows):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.space_after = spacing
+        r = p.add_run(); r.text = t
+        r.font.size = size; r.font.bold = b; r.font.color.rgb = c
+
 def bg(slide):
-    """Full dark background"""
-    add_rect(slide, 0, 0, W, H, fill=BG_DARK)
+    rect(slide, 0, 0, W, H, fill=BG)
 
-def accent_bar(slide, color=ACCENT_GREEN, width=Inches(0.05)):
-    """Left accent bar"""
-    add_rect(slide, 0, 0, width, H, fill=color)
+def divider(slide, y, color=SUBTLE):
+    rect(slide, Inches(0.55), y, Inches(12.2), Pt(1), fill=color)
 
-def slide_tag(slide, text, color=ACCENT_GREEN):
-    """Small top-right label"""
-    add_text(slide, text, Inches(11.5), Inches(0.18), Inches(1.7), Inches(0.35),
-             size=Pt(9), color=color, align=PP_ALIGN.RIGHT, italic=True)
+def chip(slide, text, x, y, fill=SAGE_L, color=SAGE_D):
+    w = Inches(0.12) * len(text) + Inches(0.35)
+    rect(slide, x, y, w, Inches(0.28), fill=fill)
+    txt(slide, text, x, y, w, Inches(0.28),
+        size=Pt(9.5), bold=True, color=color, align=PP_ALIGN.CENTER)
+    return x + w + Inches(0.12)
 
-def divider(slide, y, color=MID_GRAY):
-    add_rect(slide, Inches(0.4), y, Inches(12.5), Pt(1), fill=color)
+def logo_mark(slide, x, y, size=Inches(0.3)):
+    r = slide.shapes.add_shape(1, x, y, size, size)
+    r.fill.solid(); r.fill.fore_color.rgb = SAGE
+    r.line.fill.background()
+    inner_off = size * 0.22
+    inner_sz  = size * 0.56
+    r2 = slide.shapes.add_shape(1,
+        x + inner_off, y + inner_off, inner_sz, inner_sz)
+    r2.fill.solid(); r2.fill.fore_color.rgb = SAGE_L
+    r2.line.fill.background()
 
-def pill(slide, text, x, y, color=ACCENT_GREEN, text_color=BG_DARK):
-    w = Inches(1.4)
-    h = Inches(0.35)
-    add_rect(slide, x, y, w, h, fill=color)
-    add_text(slide, text, x, y, w, h, size=Pt(11), bold=True,
-             color=text_color, align=PP_ALIGN.CENTER)
-
-def icon_bullet(slide, icon, text, x, y, icon_color=ACCENT_GREEN, size=Pt(13)):
-    add_text(slide, icon, x, y, Inches(0.4), Inches(0.32),
-             size=size, bold=True, color=icon_color)
-    add_text(slide, text, x+Inches(0.38), y, Inches(5.5), Inches(0.32),
-             size=size, color=LIGHT_GRAY)
-
-def card(slide, x, y, w, h, fill=BG_CARD, border=ACCENT_GREEN):
-    r = add_rect(slide, x, y, w, h, fill=fill, line=border, line_w=Pt(1))
-    return r
+def page_header(slide, title, subtitle=None, tag=None, tag_color=SAGE, tag_fill=SAGE_L):
+    logo_mark(slide, Inches(0.55), Inches(0.32))
+    txt(slide, "OnboardIQ", Inches(0.95), Inches(0.32), Inches(3), Inches(0.3),
+        size=Pt(11), bold=True, color=T1)
+    if tag:
+        rect(slide, Inches(11.5), Inches(0.27), Inches(1.28), Inches(0.28), fill=tag_fill)
+        txt(slide, tag, Inches(11.5), Inches(0.27), Inches(1.28), Inches(0.28),
+            size=Pt(9), bold=True, color=tag_color, align=PP_ALIGN.CENTER)
+    divider(slide, Inches(0.72))
+    txt(slide, title, Inches(0.55), Inches(0.85), Inches(10), Inches(0.65),
+        size=Pt(28), bold=True, color=T1)
+    if subtitle:
+        txt(slide, subtitle, Inches(0.55), Inches(1.45), Inches(11), Inches(0.35),
+            size=Pt(13), color=T2)
+    divider(slide, Inches(1.82) if subtitle else Inches(1.6))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -113,758 +130,764 @@ def card(slide, x, y, w, h, fill=BG_CARD, border=ACCENT_GREEN):
 s = prs.slides.add_slide(blank)
 bg(s)
 
-# Gradient overlay strip (simulated with two rects)
-add_rect(s, 0, 0, W, Inches(0.008), fill=ACCENT_GREEN)
-add_rect(s, 0, H-Inches(0.008), W, Inches(0.008), fill=ACCENT_TEAL)
+# Sage accent strip left
+rect(s, 0, 0, Inches(0.04), H, fill=SAGE)
 
-# Big decorative circle (background)
-circ = s.shapes.add_shape(9, Inches(8.5), Inches(-1.2), Inches(5.5), Inches(5.5))
-circ.fill.solid(); circ.fill.fore_color.rgb = RGBColor(0x1A, 0x22, 0x35)
-circ.line.fill.background()
+# Subtle background block right side
+rect(s, Inches(8.8), Inches(0), Inches(4.53), H, fill=MUTED)
 
-circ2 = s.shapes.add_shape(9, Inches(9.8), Inches(3.5), Inches(3.5), Inches(3.5))
-circ2.fill.solid(); circ2.fill.fore_color.rgb = RGBColor(0x16, 0x20, 0x2F)
-circ2.line.fill.background()
+# Logo mark — large version
+logo_mark(s, Inches(0.65), Inches(1.5), Inches(0.55))
 
-# Tag line
-add_text(s, "INTERNSHIP PROJECT  ·  AWS SERVERLESS", Inches(0.55), Inches(1.6),
-         Inches(8), Inches(0.4), size=Pt(11), color=ACCENT_GREEN, bold=True, italic=False)
+# WordMark
+txt(s, "OnboardIQ", Inches(1.32), Inches(1.5), Inches(5), Inches(0.55),
+    size=Pt(14), bold=True, color=T1)
 
-# Main title
-add_text(s, "OnboardIQ", Inches(0.5), Inches(2.1), Inches(9), Inches(1.5),
-         size=Pt(72), bold=True, color=WHITE)
+# Main headline
+txt(s, "Smart Employee\nOnboarding &\nIdentity Service",
+    Inches(0.65), Inches(2.2), Inches(8), Inches(2.8),
+    size=Pt(48), bold=True, color=T1)
 
-add_text(s, "Smart Employee Onboarding", Inches(0.55), Inches(3.5),
-         Inches(9), Inches(0.7), size=Pt(32), bold=False, color=ACCENT_TEAL)
-add_text(s, "& Identity Service", Inches(0.55), Inches(4.1),
-         Inches(9), Inches(0.7), size=Pt(32), bold=False, color=ACCENT_TEAL)
+# Underline accent
+rect(s, Inches(0.65), Inches(4.82), Inches(1.1), Inches(0.04), fill=SAGE)
 
-# Sub
-add_text(s, "From offer letter acceptance to Day 1 login — fully automated on AWS",
-         Inches(0.55), Inches(5.0), Inches(9), Inches(0.5),
-         size=Pt(15), color=LIGHT_GRAY, italic=True)
+# Subtitle
+txt(s, "From offer letter acceptance to Day 1 login — fully automated on AWS.",
+    Inches(0.65), Inches(5.05), Inches(7.8), Inches(0.45),
+    size=Pt(14), color=T2)
 
-# Tech pills
-px = Inches(0.55)
-for label, clr in [("React", ACCENT_GREEN), ("AWS Lambda", ACCENT_TEAL),
-                    ("Step Functions", ACCENT_GOLD), ("DynamoDB", ACCENT_GREEN),
-                    ("Cognito", ACCENT_TEAL)]:
-    pill(s, label, px, Inches(6.2), color=clr, text_color=BG_DARK)
-    px += Inches(1.55)
+# Tech chips
+px = Inches(0.65)
+for label, f, c in [
+    ("React 18", SAGE_L, SAGE_D),
+    ("AWS Lambda", AMBER_L, AMBER),
+    ("Step Functions", BLUE_L, BLUE),
+    ("DynamoDB", MUTED, T2),
+    ("Cognito", CORAL_L, CORAL),
+]:
+    px = chip(s, label, px, Inches(5.85), fill=f, color=c)
+
+# Right side info
+txt(s, "Internship Project", Inches(9.2), Inches(2.0), Inches(3.8), Inches(0.35),
+    size=Pt(10), color=TM, italic=True)
+txt(s, "AWS Serverless\nFull Stack Application", Inches(9.2), Inches(2.5), Inches(3.8),
+    Inches(0.7), size=Pt(22), bold=True, color=T1)
+
+for i, item in enumerate([
+    "9 Lambda Functions",
+    "4 DynamoDB Tables",
+    "Step Functions Workflow",
+    "React Frontend on S3",
+]):
+    y = Inches(3.45) + i * Inches(0.48)
+    rect(s, Inches(9.2), y + Inches(0.09), Inches(0.06), Inches(0.06), fill=SAGE)
+    txt(s, item, Inches(9.38), y, Inches(3.5), Inches(0.38), size=Pt(12.5), color=T2)
+
+txt(s, "Region: ap-south-1 (Mumbai)",
+    Inches(9.2), Inches(5.55), Inches(3.8), Inches(0.28),
+    size=Pt(10), color=TM)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SLIDE 2 — THE PROBLEM
 # ══════════════════════════════════════════════════════════════════════════════
 s = prs.slides.add_slide(blank)
-bg(s); accent_bar(s, ACCENT_GOLD)
-slide_tag(s, "THE PROBLEM", ACCENT_GOLD)
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=AMBER)
+page_header(s, "The Problem We're Solving",
+            "Traditional employee onboarding is manual, fragmented, and slow.",
+            tag="PROBLEM", tag_color=AMBER, tag_fill=AMBER_L)
 
-add_text(s, "The Old Way is Broken", Inches(0.6), Inches(0.3), Inches(10), Inches(0.7),
-         size=Pt(36), bold=True, color=WHITE)
-add_text(s, "Traditional onboarding wastes time, loses documents, and leaves new hires confused.",
-         Inches(0.6), Inches(0.95), Inches(11), Inches(0.4), size=Pt(14), color=LIGHT_GRAY)
-
-divider(s, Inches(1.4))
-
-# Two column headers
-add_text(s, "❌  Before OnboardIQ", Inches(0.6), Inches(1.55), Inches(5.5), Inches(0.45),
-         size=Pt(16), bold=True, color=RGBColor(0xFF,0x5C,0x5C))
-add_text(s, "✅  With OnboardIQ", Inches(6.8), Inches(1.55), Inches(5.5), Inches(0.45),
-         size=Pt(16), bold=True, color=ACCENT_GREEN)
-
-# Vertical divider
-add_rect(s, Inches(6.55), Inches(1.5), Pt(1.5), Inches(5.5), fill=MID_GRAY)
-
-problems = [
-    "HR manually emails every new hire",
-    "Documents collected over WhatsApp",
-    "No visibility into who completed what",
-    "IT provisions accounts days late",
-    "Managers forget to greet new hires",
-    "No audit trail or compliance record",
-]
-solutions = [
-    "Automated emails triggered by workflow",
-    "Secure encrypted S3 upload portal",
-    "Real-time HR dashboard with stage tracking",
-    "Cognito account created automatically",
-    "Auto introduction email on joining date",
-    "Every action logged with timestamps",
+cols = [
+    ("Before OnboardIQ", CORAL, CORAL_L, [
+        "HR manually emails every new hire",
+        "Documents collected over WhatsApp or email",
+        "No visibility into who completed what",
+        "IT provisions accounts days late",
+        "Managers forget to greet new hires",
+        "No audit trail or compliance record",
+    ]),
+    ("With OnboardIQ", SAGE_D, SAGE_L, [
+        "Automated emails triggered by workflow engine",
+        "Secure encrypted S3 upload portal",
+        "Real-time HR dashboard with stage tracking",
+        "Cognito account created automatically on submit",
+        "Manager introduction email sent on joining date",
+        "Every action timestamped in DynamoDB",
+    ]),
 ]
 
-for i, (prob, sol) in enumerate(zip(problems, solutions)):
-    y = Inches(2.1) + i * Inches(0.72)
-    card(s, Inches(0.6), y, Inches(5.7), Inches(0.58),
-         fill=RGBColor(0x1F, 0x10, 0x10), border=RGBColor(0xFF,0x5C,0x5C))
-    add_text(s, prob, Inches(0.75), y+Inches(0.1), Inches(5.4), Inches(0.4),
-             size=Pt(12.5), color=RGBColor(0xFF,0xAA,0xAA))
-    card(s, Inches(6.8), y, Inches(5.7), Inches(0.58),
-         fill=RGBColor(0x0F, 0x1F, 0x16), border=ACCENT_GREEN)
-    add_text(s, sol, Inches(6.95), y+Inches(0.1), Inches(5.4), Inches(0.4),
-             size=Pt(12.5), color=RGBColor(0xAA, 0xFF, 0xCC))
+for ci, (heading, hclr, hfill, items) in enumerate(cols):
+    x = Inches(0.55) + ci * Inches(6.3)
+    rect(s, x, Inches(2.0), Inches(5.9), Inches(0.38), fill=hfill)
+    txt(s, heading, x + Inches(0.18), Inches(2.04), Inches(5.5), Inches(0.32),
+        size=Pt(11), bold=True, color=hclr)
+    for i, item in enumerate(items):
+        y = Inches(2.55) + i * Inches(0.72)
+        rect(s, x, y, Inches(5.9), Inches(0.62), fill=SURFACE,
+             line=SUBTLE, line_w=Pt(0.75))
+        dot_c = CORAL if ci == 0 else SAGE
+        rect(s, x + Inches(0.18), y + Inches(0.24), Inches(0.07), Inches(0.07), fill=dot_c)
+        txt(s, item, x + Inches(0.36), y + Inches(0.12), Inches(5.4), Inches(0.42),
+            size=Pt(12), color=T2)
+
+divider(s, Inches(6.87))
+txt(s, "OnboardIQ replaces all manual steps with a single AWS Step Functions workflow.",
+    Inches(0.55), Inches(7.0), Inches(12.2), Inches(0.32),
+    size=Pt(11.5), color=TM, italic=True, align=PP_ALIGN.CENTER)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SLIDE 3 — WHAT IT DOES
 # ══════════════════════════════════════════════════════════════════════════════
 s = prs.slides.add_slide(blank)
-bg(s); accent_bar(s, ACCENT_TEAL)
-slide_tag(s, "OVERVIEW", ACCENT_TEAL)
-
-add_text(s, "What OnboardIQ Does", Inches(0.6), Inches(0.3), Inches(10), Inches(0.7),
-         size=Pt(36), bold=True, color=WHITE)
-add_text(s, "Two audiences. One platform. Fully automated.",
-         Inches(0.6), Inches(0.95), Inches(10), Inches(0.4), size=Pt(14), color=LIGHT_GRAY)
-divider(s, Inches(1.4))
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=SAGE)
+page_header(s, "What OnboardIQ Does",
+            "Two portals. One automated pipeline. Zero manual steps.",
+            tag="OVERVIEW")
 
 # New Hire column
-add_text(s, "👤  New Hire Portal", Inches(0.6), Inches(1.6), Inches(5.8), Inches(0.45),
-         size=Pt(18), bold=True, color=ACCENT_TEAL)
+txt(s, "New Hire Portal", Inches(0.55), Inches(2.0), Inches(6), Inches(0.38),
+    size=Pt(14), bold=True, color=SAGE_D)
 
-steps_hire = [
-    ("1", "Fill in your profile", "Name, role, department, joining date"),
-    ("2", "Upload 3 documents", "ID proof · Degree cert · Offer letter"),
-    ("3", "Sign 5 policies", "Progress bar fills as each is checked"),
-    ("4", "Meet your manager", "Optional intro note"),
-    ("5", "Done!", "Credentials arrive in your inbox"),
+steps = [
+    ("1", "Fill in your profile",   "Name · Role · Department · Joining date"),
+    ("2", "Upload 3 documents",     "ID Proof · Degree Certificate · Offer Letter"),
+    ("3", "Sign 5 policies",        "Progress bar fills as each policy is acknowledged"),
+    ("4", "Manager intro note",     "Optional message to your reporting manager"),
+    ("5", "Done",                   "Credentials arrive in your email inbox"),
 ]
-for i, (num, title, sub) in enumerate(steps_hire):
-    y = Inches(2.15) + i * Inches(0.92)
-    add_rect(s, Inches(0.6), y, Inches(0.45), Inches(0.45),
-             fill=ACCENT_TEAL)
-    add_text(s, num, Inches(0.6), y, Inches(0.45), Inches(0.45),
-             size=Pt(14), bold=True, color=BG_DARK, align=PP_ALIGN.CENTER)
-    add_text(s, title, Inches(1.15), y, Inches(5.1), Inches(0.28),
-             size=Pt(13), bold=True, color=WHITE)
-    add_text(s, sub, Inches(1.15), y+Inches(0.27), Inches(5.1), Inches(0.22),
-             size=Pt(11), color=LIGHT_GRAY)
+for i, (num, title, sub) in enumerate(steps):
+    y = Inches(2.52) + i * Inches(0.82)
+    rect(s, Inches(0.55), y, Inches(0.36), Inches(0.36), fill=SAGE)
+    txt(s, num, Inches(0.55), y, Inches(0.36), Inches(0.36),
+        size=Pt(11), bold=True, color=SURFACE, align=PP_ALIGN.CENTER)
+    txt(s, title, Inches(1.05), y, Inches(5.2), Inches(0.25),
+        size=Pt(12.5), bold=True, color=T1)
+    txt(s, sub, Inches(1.05), y + Inches(0.26), Inches(5.2), Inches(0.22),
+        size=Pt(11), color=T2)
+
+# Divider between columns
+rect(s, Inches(6.55), Inches(1.98), Pt(1), Inches(5.3), fill=SUBTLE)
 
 # AWS column
-add_text(s, "⚙️  AWS Does Automatically", Inches(7.1), Inches(1.6), Inches(5.8), Inches(0.45),
-         size=Pt(18), bold=True, color=ACCENT_GREEN)
+txt(s, "AWS Does Automatically", Inches(6.8), Inches(2.0), Inches(6.1), Inches(0.38),
+    size=Pt(14), bold=True, color=T1)
 
-steps_aws = [
-    ("▸", "Employee record created in DynamoDB", ACCENT_GREEN),
-    ("▸", "Step Functions workflow starts", ACCENT_GREEN),
-    ("▸", "S3 event validates each document upload", ACCENT_GREEN),
-    ("▸", "Cognito account provisioned & credentials emailed", ACCENT_GREEN),
-    ("▸", "Policy sign-off timestamped in DynamoDB", ACCENT_GREEN),
-    ("▸", "Manager introduction emails sent", ACCENT_GREEN),
-    ("▸", "Employee status → ACTIVE", ACCENT_GOLD),
-    ("▸", "HR dashboard updates in real time", ACCENT_GOLD),
+aws_items = [
+    ("Employee record created in DynamoDB", SAGE),
+    ("Step Functions execution starts",     SAGE),
+    ("S3 validates each document upload",   SAGE),
+    ("Cognito account provisioned",         SAGE),
+    ("Credentials emailed via SES",         AMBER),
+    ("Policy sign-off timestamped",         SAGE),
+    ("Manager intro email sent",            SAGE),
+    ("Employee status → ACTIVE",            SAGE_D),
 ]
-for i, (icon, text, clr) in enumerate(steps_aws):
-    y = Inches(2.15) + i * Inches(0.6)
-    add_text(s, icon, Inches(7.1), y, Inches(0.3), Inches(0.35),
-             size=Pt(13), bold=True, color=clr)
-    add_text(s, text, Inches(7.45), y, Inches(5.5), Inches(0.35),
-             size=Pt(12.5), color=LIGHT_GRAY)
-
-add_rect(s, Inches(6.75), Inches(1.5), Pt(1.5), Inches(5.8), fill=MID_GRAY)
+for i, (item, dot) in enumerate(aws_items):
+    y = Inches(2.52) + i * Inches(0.54)
+    rect(s, Inches(6.8), y + Inches(0.12), Inches(0.07), Inches(0.07), fill=dot)
+    txt(s, item, Inches(7.02), y, Inches(5.9), Inches(0.36), size=Pt(12.5), color=T2)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SLIDE 4 — ARCHITECTURE
 # ══════════════════════════════════════════════════════════════════════════════
 s = prs.slides.add_slide(blank)
-bg(s); accent_bar(s, ACCENT_GREEN)
-slide_tag(s, "ARCHITECTURE", ACCENT_GREEN)
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=SAGE)
+page_header(s, "System Architecture",
+            "Fully serverless — no servers to manage, maintain, or scale.",
+            tag="ARCHITECTURE")
 
-add_text(s, "System Architecture", Inches(0.6), Inches(0.3), Inches(10), Inches(0.7),
-         size=Pt(36), bold=True, color=WHITE)
-divider(s, Inches(1.05))
-
-# Layer definitions: (label, x, y, w, h, color, sub)
 layers = [
-    ("FRONTEND  ·  React + Vite hosted on S3 Static Website",
-     Inches(0.5), Inches(1.2), Inches(12.3), Inches(1.05), RGBColor(0x12,0x25,0x2E), ACCENT_TEAL),
-    ("API GATEWAY  ·  REST API  ·  CORS enabled",
-     Inches(0.5), Inches(2.38), Inches(12.3), Inches(0.55), RGBColor(0x12,0x2A,0x1E), ACCENT_GREEN),
-    ("AWS LAMBDA  ·  9 serverless functions  ·  Node.js 20  ·  ARM64",
-     Inches(0.5), Inches(3.05), Inches(12.3), Inches(0.55), RGBColor(0x18,0x20,0x10), ACCENT_GOLD),
-    ("STEP FUNCTIONS  ·  4-stage orchestration state machine",
-     Inches(0.5), Inches(3.72), Inches(12.3), Inches(0.55), RGBColor(0x1A,0x14,0x28), RGBColor(0xA0,0x78,0xFF)),
+    ("Frontend",      "React 18 + Vite · Hosted on S3 Static Website",          SAGE,  SAGE_L,  Inches(2.0)),
+    ("API Gateway",   "REST API · CORS enabled · Routes to Lambda",               BLUE,  BLUE_L,  Inches(2.9)),
+    ("Lambda",        "9 Functions · Node.js 20 · ARM64 · 256MB",                AMBER, AMBER_L, Inches(3.8)),
+    ("Step Functions","4-stage state machine: Doc → IT → Policy → Manager Intro", T2,    MUTED,   Inches(4.7)),
 ]
-for label, x, y, w, h, fill, border in layers:
-    add_rect(s, x, y, w, h, fill=fill, line=border, line_w=Pt(1.5))
-    add_text(s, label, x+Inches(0.15), y+Inches(0.1), w-Inches(0.3), h-Inches(0.15),
-             size=Pt(13), bold=True, color=border)
 
-# Data layer boxes
-data_items = [
-    ("DynamoDB\n4 Tables", Inches(0.5),  RGBColor(0x0A,0x1E,0x3A), ACCENT_TEAL),
-    ("S3 Bucket\nEncrypted", Inches(3.2), RGBColor(0x1A,0x1A,0x0A), ACCENT_GOLD),
-    ("Cognito\nUser Pool", Inches(5.9),  RGBColor(0x1A,0x0A,0x2A), RGBColor(0xC0,0x80,0xFF)),
-    ("SES\nEmail", Inches(8.6),          RGBColor(0x0A,0x1E,0x18), ACCENT_GREEN),
-    ("SNS\nAlerts", Inches(10.7),        RGBColor(0x20,0x12,0x08), RGBColor(0xFF,0x88,0x44)),
+for name, desc, lclr, lfill, y in layers:
+    rect(s, Inches(0.55), y, Inches(12.2), Inches(0.72), fill=lfill,
+         line=SUBTLE, line_w=Pt(0.75))
+    rect(s, Inches(0.55), y, Inches(0.04), Inches(0.72), fill=lclr)
+    txt(s, name, Inches(0.8), y + Inches(0.08), Inches(2.2), Inches(0.28),
+        size=Pt(11.5), bold=True, color=lclr)
+    txt(s, desc, Inches(0.8), y + Inches(0.36), Inches(11.5), Inches(0.28),
+        size=Pt(11), color=T2)
+
+# Connector arrows
+for ay in [Inches(2.72), Inches(3.62), Inches(4.52)]:
+    txt(s, "↓", Inches(6.4), ay, Inches(0.4), Inches(0.28),
+        size=Pt(11), color=TM, align=PP_ALIGN.CENTER)
+
+# Data layer
+rect(s, Inches(0.55), Inches(5.55), Inches(12.2), Inches(0.06), fill=SUBTLE)
+txt(s, "DATA LAYER", Inches(0.55), Inches(5.68), Inches(2), Inches(0.26),
+    size=Pt(9), bold=True, color=TM)
+
+data = [
+    ("DynamoDB\n4 Tables",        SAGE,  SAGE_L),
+    ("S3 Bucket\nEncrypted",      AMBER, AMBER_L),
+    ("Cognito\nUser Pool",        BLUE,  BLUE_L),
+    ("SES\nEmail",                SAGE,  MUTED),
+    ("SNS\nAlerts",               AMBER, AMBER_L),
 ]
-for label, x, fill, border in data_items:
-    add_rect(s, x, Inches(4.4), Inches(2.4), Inches(0.85),
-             fill=fill, line=border, line_w=Pt(1.2))
-    add_text(s, label, x+Inches(0.1), Inches(4.42), Inches(2.2), Inches(0.82),
-             size=Pt(12), bold=True, color=border, align=PP_ALIGN.CENTER)
+for di, (label, dc, df) in enumerate(data):
+    dx = Inches(0.55) + di * Inches(2.46)
+    rect(s, dx, Inches(5.98), Inches(2.28), Inches(0.98), fill=df,
+         line=SUBTLE, line_w=Pt(0.75))
+    rect(s, dx, Inches(5.98), Inches(0.04), Inches(0.98), fill=dc)
+    txt(s, label, dx + Inches(0.18), Inches(6.08), Inches(2.0), Inches(0.78),
+        size=Pt(11.5), bold=True, color=dc)
 
-add_text(s, "DATA LAYER", Inches(0.5), Inches(4.28), Inches(3), Inches(0.2),
-         size=Pt(9), color=MID_GRAY, bold=True)
-
-# Arrows (simple connectors via thin rects)
-for y_pos in [Inches(2.25), Inches(2.93), Inches(3.6), Inches(4.27)]:
-    add_rect(s, Inches(6.3), y_pos, Inches(0.015), Inches(0.13), fill=MID_GRAY)
-
-# CloudFormation/SAM footnote
-add_text(s, "Infrastructure as Code: AWS SAM + CloudFormation  ·  Stack: hrms-onboarding-stack  ·  Region: ap-south-1 (Mumbai)",
-         Inches(0.5), Inches(5.45), Inches(12.3), Inches(0.3),
-         size=Pt(10), color=MID_GRAY, italic=True, align=PP_ALIGN.CENTER)
+txt(s, "Infrastructure as Code: AWS SAM + CloudFormation · Stack: hrms-onboarding-stack · ap-south-1 (Mumbai)",
+    Inches(0.55), Inches(7.1), Inches(12.2), Inches(0.26),
+    size=Pt(9.5), color=TM, italic=True, align=PP_ALIGN.CENTER)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SLIDE 5 — AWS SERVICES
 # ══════════════════════════════════════════════════════════════════════════════
 s = prs.slides.add_slide(blank)
-bg(s); accent_bar(s, ACCENT_GOLD)
-slide_tag(s, "AWS SERVICES", ACCENT_GOLD)
-
-add_text(s, "AWS Services Used", Inches(0.6), Inches(0.3), Inches(10), Inches(0.7),
-         size=Pt(36), bold=True, color=WHITE)
-add_text(s, "9 managed services — zero servers to maintain",
-         Inches(0.6), Inches(0.95), Inches(10), Inches(0.35), size=Pt(14), color=LIGHT_GRAY)
-divider(s, Inches(1.35))
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=AMBER)
+page_header(s, "AWS Services Used",
+            "9 managed services — zero servers to provision or maintain.",
+            tag="SERVICES", tag_color=AMBER, tag_fill=AMBER_L)
 
 services = [
-    ("⚡", "AWS Lambda",         "9 serverless functions, Node.js 20, ARM64, 256MB",     ACCENT_GOLD),
-    ("🔀", "Step Functions",     "4-stage state machine: documents → IT → policy → intro",  RGBColor(0xA0,0x78,0xFF)),
-    ("🗄️", "DynamoDB",           "4 tables, 3 GSIs, millisecond reads, pay-per-request",  ACCENT_TEAL),
-    ("🪣", "S3",                  "Document storage (AES-256 encrypted) + static hosting",  ACCENT_GREEN),
-    ("🔐", "Cognito",             "User pool — auto-provisions accounts with temp passwords", RGBColor(0xFF,0x88,0x44)),
-    ("📧", "SES",                 "Transactional emails: welcome, reminders, introductions", ACCENT_GREEN),
-    ("📢", "SNS",                 "HR team instant alerts when documents are received",      RGBColor(0xFF,0x66,0x66)),
-    ("🌐", "API Gateway",        "REST API — routes all frontend requests to Lambda",       ACCENT_TEAL),
-    ("🏗️", "SAM + CloudFormation","Entire infra defined as code, deployed with one command", LIGHT_GRAY),
+    ("Lambda",        "9 functions · Node.js 20 · ARM64",             AMBER, AMBER_L),
+    ("Step Functions","4-stage orchestration state machine",           T2,    MUTED),
+    ("DynamoDB",      "4 tables · 3 GSIs · pay-per-request",          BLUE,  BLUE_L),
+    ("S3",            "Encrypted document storage + static hosting",   SAGE,  SAGE_L),
+    ("Cognito",       "User pool · auto-provisions new hire accounts", CORAL, CORAL_L),
+    ("SES",           "Transactional emails — welcome, reminders",     AMBER, AMBER_L),
+    ("SNS",           "HR team alerts when all documents received",    SAGE,  SAGE_L),
+    ("API Gateway",   "REST API routing all frontend requests",        BLUE,  BLUE_L),
+    ("SAM / CF",      "Full infra as code · one-command deploy",       T2,    MUTED),
 ]
 
-cols = [Inches(0.55), Inches(4.6), Inches(8.65)]
-for i, (icon, name, desc, clr) in enumerate(services):
-    col = i % 3
-    row = i // 3
-    x = cols[col]
-    y = Inches(1.55) + row * Inches(1.72)
-    card(s, x, y, Inches(3.8), Inches(1.55), fill=BG_CARD, border=clr)
-    add_text(s, icon + "  " + name, x+Inches(0.15), y+Inches(0.1), Inches(3.5), Inches(0.45),
-             size=Pt(15), bold=True, color=clr)
-    add_text(s, desc, x+Inches(0.15), y+Inches(0.55), Inches(3.5), Inches(0.85),
-             size=Pt(11.5), color=LIGHT_GRAY, wrap=True)
+cols_per_row = 3
+for i, (name, desc, sc, sf) in enumerate(services):
+    col = i % cols_per_row
+    row = i // cols_per_row
+    x = Inches(0.55) + col * Inches(4.15)
+    y = Inches(2.05) + row * Inches(1.6)
+    rect(s, x, y, Inches(3.95), Inches(1.42), fill=SURFACE,
+         line=SUBTLE, line_w=Pt(0.75))
+    rect(s, x, y, Inches(0.04), Inches(1.42), fill=sc)
+    rect(s, x, y, Inches(3.95), Inches(0.38), fill=sf)
+    txt(s, name, x + Inches(0.18), y + Inches(0.07), Inches(3.6), Inches(0.28),
+        size=Pt(12), bold=True, color=sc)
+    txt(s, desc, x + Inches(0.18), y + Inches(0.52), Inches(3.6), Inches(0.72),
+        size=Pt(11.5), color=T2)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SLIDE 6 — ER DIAGRAM
 # ══════════════════════════════════════════════════════════════════════════════
 s = prs.slides.add_slide(blank)
-bg(s); accent_bar(s, ACCENT_TEAL)
-slide_tag(s, "DATABASE SCHEMA", ACCENT_TEAL)
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=SAGE)
+page_header(s, "Database Schema",
+            "Amazon DynamoDB · 4 tables · 3 Global Secondary Indexes",
+            tag="ER DIAGRAM")
 
-add_text(s, "Database Schema — ER Diagram", Inches(0.6), Inches(0.3), Inches(10), Inches(0.7),
-         size=Pt(34), bold=True, color=WHITE)
-add_text(s, "Amazon DynamoDB · 4 tables · 3 GSIs",
-         Inches(0.6), Inches(0.92), Inches(10), Inches(0.35), size=Pt(14), color=LIGHT_GRAY)
-divider(s, Inches(1.3))
-
-# Draw 4 entity boxes
-entities = {
-    "EMPLOYEES": {
-        "x": Inches(0.5), "y": Inches(1.5), "w": Inches(3.0), "h": Inches(4.5),
-        "color": ACCENT_TEAL,
+tables = [
+    {
+        "name": "hrms-employees",
+        "x": Inches(0.55), "y": Inches(2.05), "w": Inches(3.1), "h": Inches(4.85),
+        "color": SAGE, "fill": SAGE_L,
         "pk": "employee_id  PK",
         "fields": [
-            "first_name", "last_name", "email", "phone",
-            "department", "role", "employment_type",
-            "joining_date", "manager_id  FK",
-            "cognito_user_id", "status",
+            ("first_name, last_name, full_name", False),
+            ("email", False),
+            ("phone, department, role", False),
+            ("employment_type, joining_date", False),
+            ("manager_id  →  FK", True),
+            ("cognito_user_id", False),
+            ("status  (ONBOARDING / ACTIVE)", False),
+            ("created_at, updated_at", False),
         ]
     },
-    "ONBOARDING_WORKFLOWS": {
-        "x": Inches(4.2), "y": Inches(1.5), "w": Inches(3.2), "h": Inches(3.2),
-        "color": ACCENT_GREEN,
+    {
+        "name": "hrms-onboarding-workflows",
+        "x": Inches(4.0), "y": Inches(2.05), "w": Inches(3.1), "h": Inches(3.2),
+        "color": AMBER, "fill": AMBER_L,
         "pk": "workflow_id  PK",
         "fields": [
-            "employee_id  FK+GSI",
-            "execution_arn",
-            "current_stage",
-            "overall_status",
-            "reminder_attempt",
-            "started_at",
+            ("employee_id  GSI →  FK", True),
+            ("execution_arn", False),
+            ("current_stage", False),
+            ("overall_status", False),
+            ("reminder_attempt", False),
+            ("started_at, updated_at", False),
         ]
     },
-    "ONBOARDING_STAGES": {
-        "x": Inches(4.2), "y": Inches(5.05), "w": Inches(3.2), "h": Inches(2.2),
-        "color": ACCENT_GOLD,
+    {
+        "name": "hrms-onboarding-stages",
+        "x": Inches(4.0), "y": Inches(5.5), "w": Inches(3.1), "h": Inches(1.78),
+        "color": BLUE, "fill": BLUE_L,
         "pk": "stage_id  PK",
         "fields": [
-            "workflow_id  FK+GSI",
-            "stage_name",
-            "status",
-            "signed_at",
-            "completed_at",
+            ("workflow_id  GSI →  FK", True),
+            ("stage_name, status", False),
+            ("signed_at, completed_at", False),
         ]
     },
-    "DOCUMENTS": {
-        "x": Inches(8.0), "y": Inches(1.5), "w": Inches(3.3), "h": Inches(3.8),
-        "color": RGBColor(0xA0,0x78,0xFF),
+    {
+        "name": "hrms-documents",
+        "x": Inches(7.45), "y": Inches(2.05), "w": Inches(3.1), "h": Inches(4.4),
+        "color": CORAL, "fill": CORAL_L,
         "pk": "document_id  PK",
         "fields": [
-            "employee_id  FK+GSI",
-            "doc_type",
-            "status",
-            "s3_key",
-            "content_type",
-            "verified",
-            "validation_errors",
-            "uploaded_at",
+            ("employee_id  GSI →  FK", True),
+            ("doc_type", False),
+            ("status  (PENDING / UPLOADED)", False),
+            ("s3_key, content_type", False),
+            ("verified  (boolean)", False),
+            ("validation_errors", False),
+            ("uploaded_at, updated_at", False),
         ]
     },
-}
-
-for name, e in entities.items():
-    clr = e["color"]
-    # Header
-    add_rect(s, e["x"], e["y"], e["w"], Inches(0.45), fill=clr)
-    add_text(s, name, e["x"]+Inches(0.08), e["y"]+Inches(0.04), e["w"]-Inches(0.1), Inches(0.38),
-             size=Pt(11), bold=True, color=BG_DARK)
-    # Body
-    add_rect(s, e["x"], e["y"]+Inches(0.45), e["w"], e["h"]-Inches(0.45),
-             fill=BG_CARD, line=clr, line_w=Pt(1.2))
-    # PK row
-    add_rect(s, e["x"], e["y"]+Inches(0.45), e["w"], Inches(0.32),
-             fill=RGBColor(0x22,0x28,0x38))
-    add_text(s, "🔑  " + e["pk"], e["x"]+Inches(0.1), e["y"]+Inches(0.47),
-             e["w"]-Inches(0.15), Inches(0.28), size=Pt(10), bold=True, color=ACCENT_GOLD)
-    # Fields
-    for j, field in enumerate(e["fields"]):
-        fy = e["y"] + Inches(0.45) + Inches(0.32) + j*Inches(0.32)
-        fc = LIGHT_GRAY if "FK" not in field else ACCENT_TEAL
-        add_text(s, "  " + field, e["x"]+Inches(0.05), fy, e["w"]-Inches(0.1), Inches(0.3),
-                 size=Pt(10), color=fc)
-
-# Relationship arrows (text labels)
-rels = [
-    (Inches(3.52), Inches(2.9),  "1 → 1"),
-    (Inches(7.35), Inches(2.9),  "1 → many"),
-    (Inches(4.95), Inches(4.73), "1 → 4 stages"),
 ]
-for rx, ry, label in rels:
-    add_rect(s, rx, ry, Inches(0.65), Inches(0.25), fill=DIM, line=MID_GRAY, line_w=Pt(0.5))
-    add_text(s, label, rx, ry, Inches(0.65), Inches(0.25),
-             size=Pt(8), bold=True, color=ACCENT_GREEN, align=PP_ALIGN.CENTER)
 
-# Self-join note
-add_text(s, "↺ manager_id → employee_id (self-join)", Inches(0.55), Inches(6.1),
-         Inches(3), Inches(0.3), size=Pt(10), color=LIGHT_GRAY, italic=True)
+for t in tables:
+    c = t["color"]; f = t["fill"]
+    x, y, w, h = t["x"], t["y"], t["w"], t["h"]
+    # Card
+    rect(s, x, y, w, h, fill=SURFACE, line=SUBTLE, line_w=Pt(0.75))
+    # Header strip
+    rect(s, x, y, w, Inches(0.38), fill=f)
+    rect(s, x, y, Inches(0.04), h, fill=c)
+    txt(s, t["name"], x + Inches(0.14), y + Inches(0.06), w - Inches(0.2), Inches(0.26),
+        size=Pt(10), bold=True, color=c)
+    # PK row
+    rect(s, x, y + Inches(0.38), w, Inches(0.3), fill=MUTED)
+    txt(s, "🔑  " + t["pk"], x + Inches(0.14), y + Inches(0.4),
+        w - Inches(0.2), Inches(0.26), size=Pt(9.5), bold=True, color=AMBER)
+    # Fields
+    for fi, (field, is_fk) in enumerate(t["fields"]):
+        fy = y + Inches(0.38) + Inches(0.3) + fi * Inches(0.3)
+        fc = BLUE if is_fk else T2
+        txt(s, field, x + Inches(0.14), fy, w - Inches(0.2), Inches(0.28),
+            size=Pt(9.5), color=fc)
+
+# Relationship labels
+rel_labels = [
+    (Inches(3.68), Inches(3.15), "1 → 1"),
+    (Inches(7.14), Inches(3.15), "1 → many"),
+    (Inches(4.85), Inches(5.22), "1 → 4"),
+]
+for rx, ry, label in rel_labels:
+    rect(s, rx, ry, Inches(0.72), Inches(0.24), fill=MUTED, line=SUBTLE, line_w=Pt(0.5))
+    txt(s, label, rx, ry, Inches(0.72), Inches(0.24),
+        size=Pt(8.5), bold=True, color=T2, align=PP_ALIGN.CENTER)
+
+txt(s, "↺ manager_id self-joins back to employee_id for org hierarchy",
+    Inches(0.55), Inches(7.1), Inches(5), Inches(0.26),
+    size=Pt(9.5), color=TM, italic=True)
+
+txt(s, "Paste the Mermaid diagram in deliverables/02-er-diagram.md at mermaid.live for a rendered version",
+    Inches(5.0), Inches(7.1), Inches(7.7), Inches(0.26),
+    size=Pt(9.5), color=TM, italic=True, align=PP_ALIGN.RIGHT)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SLIDE 7 — STEP FUNCTIONS FLOW
+# SLIDE 7 — STEP FUNCTIONS WORKFLOW
 # ══════════════════════════════════════════════════════════════════════════════
 s = prs.slides.add_slide(blank)
-bg(s); accent_bar(s, RGBColor(0xA0,0x78,0xFF))
-slide_tag(s, "WORKFLOW ENGINE", RGBColor(0xA0,0x78,0xFF))
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=SAGE)
+page_header(s, "The Onboarding Workflow Engine",
+            "AWS Step Functions — event-driven, auditable, no servers polling.",
+            tag="WORKFLOW")
 
-add_text(s, "The Onboarding Workflow Engine", Inches(0.6), Inches(0.3), Inches(11), Inches(0.7),
-         size=Pt(34), bold=True, color=WHITE)
-add_text(s, "AWS Step Functions state machine — fully event-driven, auditable, serverless",
-         Inches(0.6), Inches(0.92), Inches(11), Inches(0.35), size=Pt(13), color=LIGHT_GRAY)
-divider(s, Inches(1.3))
-
-# 4 stage nodes horizontally
-stages_info = [
-    ("📄", "Stage 1", "Document\nCollection", "Validates 3 docs\nin S3 + DynamoDB", ACCENT_TEAL),
-    ("💻", "Stage 2", "IT\nProvisioning", "Creates Cognito\naccount + sends\ncredentials via SES", ACCENT_GREEN),
-    ("✍️", "Stage 3", "Policy\nSign-off", "Checks signed_at\ntimestamp in DB\nfor 5 policies", ACCENT_GOLD),
-    ("🤝", "Stage 4", "Manager\nIntro", "Sends intro emails\nto hire + manager\nUpdates status→ACTIVE", RGBColor(0xA0,0x78,0xFF)),
+stages = [
+    ("Stage 1", "Document\nCollection",
+     ["Checks DynamoDB for", "all 3 uploads", "Retries up to 3×"],
+     SAGE, SAGE_L),
+    ("Stage 2", "IT\nProvisioning",
+     ["Creates Cognito user", "Emails temp credentials", "via SES"],
+     AMBER, AMBER_L),
+    ("Stage 3", "Policy\nSign-off",
+     ["Checks signed_at", "timestamp in DynamoDB", "for 5 policies"],
+     BLUE, BLUE_L),
+    ("Stage 4", "Manager\nIntro",
+     ["Emails new hire", "Emails manager", "Status → ACTIVE"],
+     CORAL, CORAL_L),
 ]
 
-node_x = [Inches(0.55), Inches(3.55), Inches(6.55), Inches(9.55)]
-for i, (icon, stage, title, desc, clr) in enumerate(stages_info):
-    x = node_x[i]
-    # Stage card
-    card(s, x, Inches(1.55), Inches(2.7), Inches(3.6), fill=BG_CARD, border=clr)
-    # Icon circle
-    circ = s.shapes.add_shape(9, x+Inches(1.0), Inches(1.7), Inches(0.7), Inches(0.7))
-    circ.fill.solid(); circ.fill.fore_color.rgb = clr
-    circ.line.fill.background()
-    add_text(s, icon, x+Inches(1.0), Inches(1.7), Inches(0.7), Inches(0.7),
-             size=Pt(18), align=PP_ALIGN.CENTER)
-    add_text(s, stage, x+Inches(0.1), Inches(2.5), Inches(2.5), Inches(0.3),
-             size=Pt(10), color=clr, bold=True, align=PP_ALIGN.CENTER)
-    add_text(s, title, x+Inches(0.1), Inches(2.78), Inches(2.5), Inches(0.55),
-             size=Pt(16), bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    add_text(s, desc, x+Inches(0.1), Inches(3.38), Inches(2.5), Inches(1.5),
-             size=Pt(11.5), color=LIGHT_GRAY, align=PP_ALIGN.CENTER)
-    # Check mark at bottom
-    add_rect(s, x+Inches(0.85), Inches(4.9), Inches(1.0), Inches(0.28), fill=clr)
-    add_text(s, "✓ COMPLETE", x+Inches(0.85), Inches(4.9), Inches(1.0), Inches(0.28),
-             size=Pt(9), bold=True, color=BG_DARK, align=PP_ALIGN.CENTER)
+box_x = [Inches(0.55), Inches(3.65), Inches(6.75), Inches(9.85)]
+for i, (stage, title, details, sc, sf) in enumerate(stages):
+    x = box_x[i]
+    rect(s, x, Inches(2.05), Inches(2.88), Inches(4.1), fill=SURFACE,
+         line=SUBTLE, line_w=Pt(0.75))
+    rect(s, x, Inches(2.05), Inches(2.88), Inches(0.34), fill=sf)
+    rect(s, x, Inches(2.05), Inches(0.04), Inches(4.1), fill=sc)
+    txt(s, stage, x + Inches(0.16), Inches(2.1), Inches(2.6), Inches(0.24),
+        size=Pt(9.5), bold=True, color=sc)
+    txt(s, title, x + Inches(0.16), Inches(2.45), Inches(2.6), Inches(0.7),
+        size=Pt(18), bold=True, color=T1)
+    for di, detail in enumerate(details):
+        dy = Inches(3.28) + di * Inches(0.4)
+        rect(s, x + Inches(0.16), dy + Inches(0.1),
+             Inches(0.06), Inches(0.06), fill=sc)
+        txt(s, detail, x + Inches(0.32), dy, Inches(2.4), Inches(0.35),
+            size=Pt(11.5), color=T2)
+    # Complete badge
+    rect(s, x + Inches(0.5), Inches(5.78), Inches(1.88), Inches(0.26), fill=sf)
+    txt(s, "✓  COMPLETE", x + Inches(0.5), Inches(5.78), Inches(1.88), Inches(0.26),
+        size=Pt(9.5), bold=True, color=sc, align=PP_ALIGN.CENTER)
 
-# Arrows between stages
-for ax in [Inches(3.28), Inches(6.28), Inches(9.28)]:
-    add_text(s, "→", ax, Inches(3.1), Inches(0.3), Inches(0.4),
-             size=Pt(22), bold=True, color=MID_GRAY, align=PP_ALIGN.CENTER)
+# Arrows
+for ax in [Inches(3.44), Inches(6.54), Inches(9.64)]:
+    txt(s, "→", ax, Inches(3.72), Inches(0.3), Inches(0.4),
+        size=Pt(16), color=TM, align=PP_ALIGN.CENTER)
 
-# Wait state note
-add_text(s, "⏳  Wait states between stages check DynamoDB every 30s (demo) / 24h (production) before advancing",
-         Inches(0.55), Inches(5.35), Inches(12.3), Inches(0.32),
-         size=Pt(11.5), color=LIGHT_GRAY, italic=True, align=PP_ALIGN.CENTER)
+divider(s, Inches(6.25))
+txt(s, "Wait states pause the execution every 30s (demo) / 24h (production) — zero compute cost while waiting.",
+    Inches(0.55), Inches(6.38), Inches(12.2), Inches(0.28),
+    size=Pt(11), color=TM, italic=True, align=PP_ALIGN.CENTER)
 
-# Bottom strip — why Step Functions
-add_rect(s, Inches(0.5), Inches(5.75), Inches(12.3), Inches(0.6), fill=DIM)
-reasons = ["Event-driven", "Auto-retry on failure", "Full execution history", "No servers polling", "Visual debugger"]
-rx = Inches(0.8)
-for r in reasons:
-    add_text(s, "✦ " + r, rx, Inches(5.82), Inches(2.2), Inches(0.4),
-             size=Pt(11), color=ACCENT_GREEN, bold=True)
-    rx += Inches(2.35)
+txt(s, "If a stage is incomplete after 3 reminders → marked Overdue → workflow fails gracefully.",
+    Inches(0.55), Inches(6.75), Inches(12.2), Inches(0.28),
+    size=Pt(11), color=TM, italic=True, align=PP_ALIGN.CENTER)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SLIDE 8 — LIVE EXECUTION PROOF
 # ══════════════════════════════════════════════════════════════════════════════
 s = prs.slides.add_slide(blank)
-bg(s); accent_bar(s, ACCENT_GREEN)
-slide_tag(s, "LIVE EXECUTION", ACCENT_GREEN)
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=SAGE)
+page_header(s, "Live Execution Proof",
+            "Real AWS Step Functions execution — Arjun Sharma · EMP-4FEA92A3 · 2026-04-08",
+            tag="EXECUTION")
 
-add_text(s, "Live Execution Proof", Inches(0.6), Inches(0.3), Inches(10), Inches(0.7),
-         size=Pt(36), bold=True, color=WHITE)
-
-# Execution meta pill bar
-add_rect(s, Inches(0.5), Inches(1.0), Inches(12.3), Inches(0.5), fill=DIM)
-meta_items = [
-    ("Employee:", "Arjun Sharma · EMP-4FEA92A3"),
-    ("Status:", "✅  SUCCEEDED"),
-    ("Duration:", "66 seconds"),
-    ("Date:", "2026-04-08 · 15:11 IST"),
+# Meta row
+rect(s, Inches(0.55), Inches(1.98), Inches(12.2), Inches(0.44), fill=SAGE_L,
+     line=SUBTLE, line_w=Pt(0.75))
+metas = [
+    ("Status", "✓  SUCCEEDED"),
+    ("Duration", "66 seconds"),
+    ("Stages", "4 / 4 complete"),
+    ("Time", "15:11 – 15:12 IST"),
 ]
-mx = Inches(0.7)
-for label, val in meta_items:
-    add_text(s, label, mx, Inches(1.05), Inches(1.0), Inches(0.35),
-             size=Pt(10), color=LIGHT_GRAY, bold=True)
-    add_text(s, val, mx+Inches(0.85), Inches(1.05), Inches(2.0), Inches(0.35),
-             size=Pt(10), color=ACCENT_GREEN, bold=True)
-    mx += Inches(3.0)
+for mi, (label, val) in enumerate(metas):
+    mx = Inches(0.85) + mi * Inches(3.0)
+    txt(s, label, mx, Inches(2.02), Inches(1.2), Inches(0.2),
+        size=Pt(8.5), color=TM, bold=True)
+    txt(s, val, mx, Inches(2.2), Inches(2.5), Inches(0.2),
+        size=Pt(10.5), color=SAGE_D, bold=True)
 
-divider(s, Inches(1.55))
-
-# Timeline
+# Timeline events
 events = [
-    ("15:11:53", "→", "DocumentCollection",    "Stage 1 starts — checks DynamoDB for uploads",     ACCENT_TEAL,  False),
-    ("15:11:54", "⏳", "WaitForDocuments",       "30-second wait — documents uploaded during pause",  MID_GRAY,     True),
-    ("15:12:25", "✓", "DocumentCollection",    "All 3 documents received — stage COMPLETE",          ACCENT_TEAL,  False),
-    ("15:12:25", "→", "ITProvisioning",        "Stage 2 — creates Cognito user, sends credentials",  ACCENT_GREEN, False),
-    ("15:12:27", "✓", "ITProvisioning",        "Cognito account created — stage COMPLETE",            ACCENT_GREEN, False),
-    ("15:12:27", "→", "PolicySignoff",         "Stage 3 — checks policy signed_at timestamp",        ACCENT_GOLD,  False),
-    ("15:12:27", "⏳", "WaitForPolicySignoff",  "30-second wait",                                     MID_GRAY,     True),
-    ("15:12:58", "✓", "PolicySignoff",         "All 5 policies signed — stage COMPLETE",              ACCENT_GOLD,  False),
-    ("15:12:58", "→", "ManagerIntro",          "Stage 4 — intro emails to employee + manager",       RGBColor(0xA0,0x78,0xFF), False),
-    ("15:12:59", "✓", "OnboardingComplete",    "🎉  EXECUTION SUCCEEDED — employee status → ACTIVE",  ACCENT_GREEN, False),
+    ("15:11:53", "DocumentCollection entered",    "Stage 1 starts",                        SAGE,  False),
+    ("15:11:54", "WaitForDocuments",              "30-second wait — documents uploading",   TM,    True),
+    ("15:12:25", "DocumentCollection  ✓",         "All 3 documents received",               SAGE,  False),
+    ("15:12:25", "ITProvisioning entered",        "Stage 2 — Cognito user creation",        AMBER, False),
+    ("15:12:27", "ITProvisioning  ✓",             "Cognito account created",                AMBER, False),
+    ("15:12:27", "PolicySignoff entered",         "Stage 3 — checks signed_at",             BLUE,  False),
+    ("15:12:27", "WaitForPolicySignoff",          "30-second wait",                         TM,    True),
+    ("15:12:58", "PolicySignoff  ✓",              "All 5 policies signed",                  BLUE,  False),
+    ("15:12:58", "ManagerIntro entered",          "Stage 4 — intro emails dispatched",      CORAL, False),
+    ("15:12:59", "OnboardingComplete  ✓",         "EXECUTION SUCCEEDED — status → ACTIVE",  SAGE_D,False),
 ]
 
-for i, (ts, icon, state, desc, clr, dim) in enumerate(events):
-    y = Inches(1.7) + i * Inches(0.51)
-    # Time
-    add_text(s, ts, Inches(0.55), y, Inches(0.9), Inches(0.38),
-             size=Pt(10), color=MID_GRAY if dim else LIGHT_GRAY)
-    # Icon
-    add_text(s, icon, Inches(1.5), y, Inches(0.35), Inches(0.38),
-             size=Pt(13), bold=True, color=clr, align=PP_ALIGN.CENTER)
-    # State name
-    add_text(s, state, Inches(1.9), y, Inches(2.8), Inches(0.38),
-             size=Pt(11), bold=True, color=clr)
-    # Description
-    add_text(s, desc, Inches(4.75), y, Inches(8.0), Inches(0.38),
-             size=Pt(11), color=MID_GRAY if dim else LIGHT_GRAY)
-    # Thin timeline line
-    if i < len(events)-1:
-        add_rect(s, Inches(1.62), y+Inches(0.38), Pt(1.5), Inches(0.13),
-                 fill=DIM)
+for i, (ts, state, desc, ec, dim) in enumerate(events):
+    y = Inches(2.62) + i * Inches(0.46)
+    if i % 2 == 0:
+        rect(s, Inches(0.55), y, Inches(12.2), Inches(0.46), fill=MUTED)
+    clr = TM if dim else T2
+    txt(s, ts,    Inches(0.72), y + Inches(0.1), Inches(1.1), Inches(0.3),
+        size=Pt(10), color=TM)
+    rect(s, Inches(1.88), y + Inches(0.18), Inches(0.06), Inches(0.06),
+         fill=TM if dim else ec)
+    txt(s, state, Inches(2.05), y + Inches(0.1), Inches(3.5), Inches(0.3),
+        size=Pt(10.5), bold=not dim, color=TM if dim else ec)
+    txt(s, desc,  Inches(5.65), y + Inches(0.1), Inches(6.9), Inches(0.3),
+        size=Pt(10.5), color=clr)
 
-# Duration summary bar
-add_rect(s, Inches(0.5), Inches(6.9), Inches(12.3), Inches(0.38), fill=DIM)
-stage_times = [
-    ("Doc Collection", "~32s", ACCENT_TEAL),
-    ("IT Provisioning", "~1.7s", ACCENT_GREEN),
-    ("Policy Sign-off", "~30.3s", ACCENT_GOLD),
-    ("Manager Intro", "~2.1s", RGBColor(0xA0,0x78,0xFF)),
-    ("TOTAL", "66s", WHITE),
-]
-bx = Inches(0.75)
-for label, dur, clr in stage_times:
-    add_text(s, label + ": ", bx, Inches(6.95), Inches(1.5), Inches(0.28),
-             size=Pt(10), color=LIGHT_GRAY)
-    add_text(s, dur, bx+Inches(1.35), Inches(6.95), Inches(0.6), Inches(0.28),
-             size=Pt(10), bold=True, color=clr)
-    bx += Inches(2.4)
+divider(s, Inches(7.12))
+txt(s, "Open AWS Console → Step Functions → hrms-onboarding-workflow → Executions to see the visual graph",
+    Inches(0.55), Inches(7.24), Inches(12.2), Inches(0.22),
+    size=Pt(9.5), color=TM, italic=True, align=PP_ALIGN.CENTER)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SLIDE 9 — DEMO WALKTHROUGH (NEW HIRE)
+# SLIDE 9 — DEMO WALKTHROUGH A (NEW HIRE)
 # ══════════════════════════════════════════════════════════════════════════════
 s = prs.slides.add_slide(blank)
-bg(s); accent_bar(s, ACCENT_TEAL)
-slide_tag(s, "DEMO · PART A", ACCENT_TEAL)
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=SAGE)
+page_header(s, "Demo Walkthrough — Part A",
+            "New Hire Experience · follow these steps exactly during the presentation.",
+            tag="DEMO  A")
 
-add_text(s, "Demo Walkthrough", Inches(0.6), Inches(0.25), Inches(8), Inches(0.65),
-         size=Pt(36), bold=True, color=WHITE)
-add_text(s, "Part A — New Hire Experience", Inches(0.6), Inches(0.87), Inches(8), Inches(0.4),
-         size=Pt(18), color=ACCENT_TEAL)
-divider(s, Inches(1.32))
+rect(s, Inches(0.55), Inches(1.98), Inches(12.2), Inches(0.34), fill=SAGE_L,
+     line=SUBTLE, line_w=Pt(0.75))
+txt(s, "App URL:  hrms-onboarding-frontend-dev.s3-website.ap-south-1.amazonaws.com",
+    Inches(0.72), Inches(2.02), Inches(12.0), Inches(0.26),
+    size=Pt(10.5), bold=False, color=SAGE_D)
 
-add_text(s, "🌐  App URL:", Inches(0.6), Inches(1.42), Inches(2.2), Inches(0.35),
-         size=Pt(12), color=LIGHT_GRAY, bold=True)
-add_text(s, "hrms-onboarding-frontend-dev.s3-website.ap-south-1.amazonaws.com",
-         Inches(2.85), Inches(1.42), Inches(9.5), Inches(0.35),
-         size=Pt(12), color=ACCENT_TEAL)
-
-steps_demo = [
+steps_a = [
     ("A1", "Open the App",
-     "Go to the URL above → splash animation plays → landing page shows 2 cards.",
-     ACCENT_TEAL),
+     "Navigate to the URL above → splash animation plays → landing page shows two cards.",
+     SAGE, SAGE_L),
     ("A2", "Enter New Hire Portal",
-     "Click 'New Hire Portal' → another splash → Step 1 of 4 appears.",
-     ACCENT_TEAL),
-    ("A3", "Fill in Profile",
-     "First: Priya · Last: Menon · Email: priya.menon@example.com · Dept: Engineering · Role: Frontend Engineer · Click Continue →",
-     ACCENT_GREEN),
+     "Click 'New Hire Portal' → another splash → Step 1 of 5 appears.",
+     SAGE, SAGE_L),
+    ("A3", "Fill Profile",
+     "First: Priya  ·  Last: Menon  ·  Email: priya.menon@example.com  ·  Dept: Engineering  ·  Role: Frontend Engineer  →  Continue",
+     SAGE, SAGE_L),
     ("A4", "Upload Documents",
-     "Click each of the 3 cards (ID Proof, Degree, Offer Letter) → choose any PDF → green badge appears. Click Continue →",
-     ACCENT_GOLD),
-    ("A5", "Sign Policies",
-     "Tick all 5 checkboxes → progress bar fills to 100% → Click Continue →",
-     ACCENT_GOLD),
+     "Click each of the 3 cards → upload any PDF → green Uploaded badge appears on each → Continue",
+     AMBER, AMBER_L),
+    ("A5", "Sign 5 Policies",
+     "Check all 5 boxes one by one — watch the progress bar fill to 100% → Continue",
+     AMBER, AMBER_L),
     ("A6", "Manager Intro",
-     "Optionally type a note → Click 'Submit & Complete ✓'",
-     RGBColor(0xA0,0x78,0xFF)),
+     "Type a note (optional): 'What does the first week look like?' → Submit & Complete ✓",
+     BLUE, BLUE_L),
     ("A7", "Completion Screen",
-     "Shows all stages. Click '← Back to Home' to return.",
-     ACCENT_GREEN),
+     "Completion screen shows all stage badges. Click '← Back to Home'.",
+     SAGE, SAGE_L),
 ]
 
-for i, (tag, title, detail, clr) in enumerate(steps_demo):
-    y = Inches(1.9) + i * Inches(0.73)
-    add_rect(s, Inches(0.55), y, Inches(0.42), Inches(0.42), fill=clr)
-    add_text(s, tag, Inches(0.55), y, Inches(0.42), Inches(0.42),
-             size=Pt(10), bold=True, color=BG_DARK, align=PP_ALIGN.CENTER)
-    add_text(s, title, Inches(1.1), y, Inches(3.1), Inches(0.28),
-             size=Pt(12), bold=True, color=clr)
-    add_text(s, detail, Inches(1.1), y+Inches(0.27), Inches(11.5), Inches(0.32),
-             size=Pt(10.5), color=LIGHT_GRAY)
+for i, (tag, title, detail, tc, tf) in enumerate(steps_a):
+    y = Inches(2.48) + i * Inches(0.68)
+    rect(s, Inches(0.55), y, Inches(0.36), Inches(0.36), fill=tf, line=tc, line_w=Pt(1))
+    txt(s, tag, Inches(0.55), y, Inches(0.36), Inches(0.36),
+        size=Pt(9), bold=True, color=tc, align=PP_ALIGN.CENTER)
+    txt(s, title, Inches(1.05), y, Inches(2.8), Inches(0.26),
+        size=Pt(11.5), bold=True, color=T1)
+    txt(s, detail, Inches(1.05), y + Inches(0.26), Inches(11.6), Inches(0.3),
+        size=Pt(10.5), color=T2)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SLIDE 10 — DEMO WALKTHROUGH (HR DASHBOARD)
+# SLIDE 10 — DEMO WALKTHROUGH B (HR DASHBOARD)
 # ══════════════════════════════════════════════════════════════════════════════
 s = prs.slides.add_slide(blank)
-bg(s); accent_bar(s, ACCENT_GREEN)
-slide_tag(s, "DEMO · PART B", ACCENT_GREEN)
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=AMBER)
+page_header(s, "Demo Walkthrough — Part B",
+            "HR Admin Dashboard · PIN-gated · real-time pipeline view.",
+            tag="DEMO  B", tag_color=AMBER, tag_fill=AMBER_L)
 
-add_text(s, "Demo Walkthrough", Inches(0.6), Inches(0.25), Inches(8), Inches(0.65),
-         size=Pt(36), bold=True, color=WHITE)
-add_text(s, "Part B — HR Admin Dashboard", Inches(0.6), Inches(0.87), Inches(8), Inches(0.4),
-         size=Pt(18), color=ACCENT_GREEN)
-divider(s, Inches(1.32))
+rect(s, Inches(0.55), Inches(1.98), Inches(12.2), Inches(0.34), fill=AMBER_L,
+     line=SUBTLE, line_w=Pt(0.75))
+txt(s, "HR PIN:  1234   (auto-unlocks on the 4th digit — no Enter needed · resets every navigation)",
+    Inches(0.72), Inches(2.02), Inches(12.0), Inches(0.26),
+    size=Pt(10.5), color=AMBER, bold=True)
 
-add_text(s, "🔑  HR PIN:", Inches(0.6), Inches(1.42), Inches(1.5), Inches(0.35),
-         size=Pt(12), color=LIGHT_GRAY, bold=True)
-add_rect(s, Inches(2.15), Inches(1.38), Inches(0.75), Inches(0.4), fill=ACCENT_GREEN)
-add_text(s, "1234", Inches(2.15), Inches(1.38), Inches(0.75), Inches(0.4),
-         size=Pt(16), bold=True, color=BG_DARK, align=PP_ALIGN.CENTER)
-add_text(s, "← auto-unlocks on 4th digit, no Enter needed",
-         Inches(3.0), Inches(1.42), Inches(6), Inches(0.35), size=Pt(12), color=LIGHT_GRAY, italic=True)
-
-hr_steps = [
+steps_b = [
     ("B1", "Open HR Dashboard",
-     "From landing page click 'HR Admin Dashboard' → splash plays → PIN gate appears.",
-     ACCENT_GREEN),
+     "From landing page click 'HR Admin Dashboard' → splash → PIN gate appears.",
+     AMBER, AMBER_L),
     ("B2", "Enter PIN",
-     "Type 1-2-3-4. On the 4th digit the screen fades out automatically. Dashboard fades in.",
-     ACCENT_GREEN),
-    ("B3", "Read the Stats Bar",
-     "5 metric cards: Total Employees · In Progress · Completed · Docs Pending · Avg Completion %",
-     ACCENT_TEAL),
-    ("B4", "Find Your New Hire",
+     "Type 1-2-3-4 — on the 4th digit the screen fades out automatically. Dashboard fades in.",
+     AMBER, AMBER_L),
+    ("B3", "Stats Bar",
+     "5 metric cards at top: Total · In Progress · Completed · Docs Pending · Avg Completion %",
+     SAGE, SAGE_L),
+    ("B4", "Search for Your Hire",
      "Type 'Priya' in the search bar → table filters live to show Priya Menon's row.",
-     ACCENT_TEAL),
+     SAGE, SAGE_L),
     ("B5", "Expand Detail Panel",
-     "Click Priya's row → detail panel slides open showing all 4 stages with timestamps + 3 document badges.",
-     ACCENT_GOLD),
-    ("B6", "Refresh Dashboard",
-     "Click the Refresh button (top right) → spinning icon → data reloads from live API.",
-     ACCENT_GOLD),
-    ("B7", "Filter by Status",
+     "Click the row → panel slides open: 4 stages with timestamps + 3 document upload badges.",
+     SAGE, SAGE_L),
+    ("B6", "Refresh",
+     "Click Refresh button (top right) → spinner → data reloads from live API.",
+     BLUE, BLUE_L),
+    ("B7", "Status Filters",
      "Use filter pills: All · In Progress · Completed · Pending — each filters the table.",
-     RGBColor(0xA0,0x78,0xFF)),
+     BLUE, BLUE_L),
 ]
 
-for i, (tag, title, detail, clr) in enumerate(hr_steps):
-    y = Inches(1.9) + i * Inches(0.73)
-    add_rect(s, Inches(0.55), y, Inches(0.42), Inches(0.42), fill=clr)
-    add_text(s, tag, Inches(0.55), y, Inches(0.42), Inches(0.42),
-             size=Pt(10), bold=True, color=BG_DARK, align=PP_ALIGN.CENTER)
-    add_text(s, title, Inches(1.1), y, Inches(3.1), Inches(0.28),
-             size=Pt(12), bold=True, color=clr)
-    add_text(s, detail, Inches(1.1), y+Inches(0.27), Inches(11.5), Inches(0.32),
-             size=Pt(10.5), color=LIGHT_GRAY)
+for i, (tag, title, detail, tc, tf) in enumerate(steps_b):
+    y = Inches(2.48) + i * Inches(0.68)
+    rect(s, Inches(0.55), y, Inches(0.36), Inches(0.36), fill=tf, line=tc, line_w=Pt(1))
+    txt(s, tag, Inches(0.55), y, Inches(0.36), Inches(0.36),
+        size=Pt(9), bold=True, color=tc, align=PP_ALIGN.CENTER)
+    txt(s, title, Inches(1.05), y, Inches(2.8), Inches(0.26),
+        size=Pt(11.5), bold=True, color=T1)
+    txt(s, detail, Inches(1.05), y + Inches(0.26), Inches(11.6), Inches(0.3),
+        size=Pt(10.5), color=T2)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SLIDE 11 — DEMO WALKTHROUGH (AWS CONSOLE)
+# SLIDE 11 — DEMO WALKTHROUGH C (AWS CONSOLE)
 # ══════════════════════════════════════════════════════════════════════════════
 s = prs.slides.add_slide(blank)
-bg(s); accent_bar(s, ACCENT_GOLD)
-slide_tag(s, "DEMO · PART C", ACCENT_GOLD)
-
-add_text(s, "Demo Walkthrough", Inches(0.6), Inches(0.25), Inches(8), Inches(0.65),
-         size=Pt(36), bold=True, color=WHITE)
-add_text(s, "Part C — AWS Console Evidence", Inches(0.6), Inches(0.87), Inches(8), Inches(0.4),
-         size=Pt(18), color=ACCENT_GOLD)
-divider(s, Inches(1.32))
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=BLUE)
+page_header(s, "Demo Walkthrough — Part C",
+            "AWS Console evidence — show evaluators the live backend.",
+            tag="DEMO  C", tag_color=BLUE, tag_fill=BLUE_L)
 
 console_steps = [
-    ("C1", "Step Functions Console",
-     "Open AWS Console → Step Functions → hrms-onboarding-workflow → Executions tab\n"
-     "→ Click latest SUCCEEDED execution → Graph view (all states green) → Events tab (full timeline)",
-     ACCENT_GOLD),
-    ("C2", "DynamoDB — Employees Table",
-     "DynamoDB → hrms-employees → Explore table items\n"
-     "→ Find your employee: status = ACTIVE, cognito_user_id populated, all fields present",
-     ACCENT_TEAL),
-    ("C3", "DynamoDB — Stages Table",
-     "DynamoDB → hrms-onboarding-stages → Filter by workflow_id\n"
-     "→ All 4 rows show status = COMPLETE with completed_at timestamps",
-     ACCENT_TEAL),
-    ("C4", "S3 Bucket — Uploaded Documents",
+    ("C1", "Step Functions",
+     "AWS Console → Step Functions → hrms-onboarding-workflow → Executions tab\n"
+     "Click latest SUCCEEDED → Graph view (all states green) → Events tab (full timeline)",
+     SAGE),
+    ("C2", "DynamoDB — Employees",
+     "DynamoDB → hrms-employees → Explore items → find your employee\n"
+     "Show: status = ACTIVE · cognito_user_id populated · all fields correct",
+     BLUE),
+    ("C3", "DynamoDB — Stages",
+     "DynamoDB → hrms-onboarding-stages → filter by workflow_id\n"
+     "Show: all 4 rows with status = COMPLETE and completed_at timestamps",
+     BLUE),
+    ("C4", "S3 — Documents",
      "S3 → hrms-onboarding-documents-736786104206-dev → documents/{employee_id}/\n"
-     "→ 3 files visible: ID_PROOF, DEGREE_CERTIFICATE, OFFER_LETTER",
-     ACCENT_GREEN),
-    ("C5", "S3 — Encryption Proof",
-     "S3 bucket → Properties tab → Default encryption → AES-256 server-side encryption enabled",
-     ACCENT_GREEN),
+     "Show: 3 uploaded files — ID_PROOF · DEGREE_CERTIFICATE · OFFER_LETTER",
+     AMBER),
+    ("C5", "S3 — Encryption",
+     "S3 bucket → Properties → Default encryption → AES-256 server-side encryption enabled",
+     AMBER),
 ]
 
-for i, (tag, title, detail, clr) in enumerate(console_steps):
-    y = Inches(1.55) + i * Inches(1.12)
-    card(s, Inches(0.55), y, Inches(12.2), Inches(1.0), fill=BG_CARD, border=clr)
-    add_rect(s, Inches(0.55), y, Inches(0.5), Inches(1.0), fill=clr)
-    add_text(s, tag, Inches(0.55), y+Inches(0.28), Inches(0.5), Inches(0.42),
-             size=Pt(10), bold=True, color=BG_DARK, align=PP_ALIGN.CENTER)
-    add_text(s, title, Inches(1.15), y+Inches(0.05), Inches(11.3), Inches(0.35),
-             size=Pt(13), bold=True, color=clr)
-    add_text(s, detail, Inches(1.15), y+Inches(0.38), Inches(11.3), Inches(0.58),
-             size=Pt(11), color=LIGHT_GRAY, wrap=True)
+for i, (tag, title, detail, tc) in enumerate(console_steps):
+    y = Inches(2.05) + i * Inches(1.02)
+    rect(s, Inches(0.55), y, Inches(12.2), Inches(0.92), fill=SURFACE,
+         line=SUBTLE, line_w=Pt(0.75))
+    rect(s, Inches(0.55), y, Inches(0.04), Inches(0.92), fill=tc)
+    rect(s, Inches(0.55), y, Inches(12.2), Inches(0.32), fill=MUTED)
+    txt(s, tag + "  ·  " + title, Inches(0.75), y + Inches(0.05),
+        Inches(11.8), Inches(0.24), size=Pt(11), bold=True, color=tc)
+    txt(s, detail, Inches(0.75), y + Inches(0.36), Inches(11.8), Inches(0.52),
+        size=Pt(10.5), color=T2)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SLIDE 12 — COST ESTIMATE
 # ══════════════════════════════════════════════════════════════════════════════
 s = prs.slides.add_slide(blank)
-bg(s); accent_bar(s, ACCENT_GREEN)
-slide_tag(s, "COST ESTIMATE", ACCENT_GREEN)
-
-add_text(s, "Cost Estimate — 50 Hires/Month", Inches(0.6), Inches(0.3), Inches(10), Inches(0.7),
-         size=Pt(34), bold=True, color=WHITE)
-add_text(s, "AWS ap-south-1 (Mumbai) · All major services within free tier at this scale",
-         Inches(0.6), Inches(0.92), Inches(11), Inches(0.35), size=Pt(13), color=LIGHT_GRAY)
-divider(s, Inches(1.32))
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=SAGE)
+page_header(s, "Cost Estimate — 50 Hires / Month",
+            "AWS ap-south-1 pricing · April 2026 · all major services within free tier at this scale.",
+            tag="COST")
 
 costs = [
-    ("⚡ Lambda",        "750 invocations/mo",       "$0.00", "Covered by 1M free tier",   ACCENT_GOLD),
-    ("🔀 Step Functions","1,650 transitions/mo",      "$0.00", "First 4,000 are free",       RGBColor(0xA0,0x78,0xFF)),
-    ("🗄️ DynamoDB",      "1,500 writes · 5,000 reads","$0.00", "25GB always free",           ACCENT_TEAL),
-    ("🪣 S3",            "75MB storage · 150 PUTs",   "$0.004","$0.023/GB storage",          ACCENT_GREEN),
-    ("📧 SES",           "400 emails/mo",             "$0.04", "$0.10 per 1,000 emails",     ACCENT_GREEN),
-    ("🔐 Cognito",       "50 MAUs",                   "$0.00", "First 50,000 MAU free",      RGBColor(0xFF,0x88,0x44)),
-    ("📢 SNS",           "50 notifications/mo",       "$0.00", "First 1M free",              RGBColor(0xFF,0x66,0x66)),
-    ("🌐 API Gateway",   "~200 requests/mo",          "$0.001","$3.50 per million requests", ACCENT_TEAL),
+    ("Lambda",         "750 invocations/mo",      "$0.00", "Covered by 1M free tier",   SAGE,  SAGE_L),
+    ("Step Functions", "1,650 transitions/mo",    "$0.00", "First 4,000 free",           T2,    MUTED),
+    ("DynamoDB",       "~6,500 reads + writes",   "$0.00", "25GB always-free tier",      BLUE,  BLUE_L),
+    ("S3",             "75MB · 150 PUTs",         "$0.004","$0.023/GB storage",          AMBER, AMBER_L),
+    ("SES",            "400 emails/mo",           "$0.04", "$0.10 per 1,000 emails",     SAGE,  SAGE_L),
+    ("Cognito",        "50 MAUs",                 "$0.00", "First 50,000 MAU free",      CORAL, CORAL_L),
+    ("SNS",            "50 notifications",        "$0.00", "First 1M free",              T2,    MUTED),
+    ("API Gateway",    "~200 requests/mo",        "$0.001","$3.50 per million requests", BLUE,  BLUE_L),
 ]
 
-cols_c = [Inches(0.55), Inches(4.1), Inches(7.4), Inches(9.4)]
-hdrs = ["Service", "Usage", "Cost/mo", "Pricing Basis"]
-for j, hdr in enumerate(hdrs):
-    add_text(s, hdr, cols_c[j], Inches(1.45), Inches(2.5), Inches(0.3),
-             size=Pt(11), bold=True, color=LIGHT_GRAY)
+# Header row
+rect(s, Inches(0.55), Inches(2.0), Inches(12.2), Inches(0.36), fill=MUTED)
+for xi, hdr in zip(
+    [Inches(0.72), Inches(3.1), Inches(6.8), Inches(9.0)],
+    ["Service", "Monthly Usage", "Cost", "Pricing Basis"]
+):
+    txt(s, hdr, xi, Inches(2.06), Inches(2.5), Inches(0.26),
+        size=Pt(10), bold=True, color=T2)
 
-add_rect(s, Inches(0.5), Inches(1.78), Inches(12.3), Pt(1), fill=MID_GRAY)
-
-for i, (name, usage, cost, basis, clr) in enumerate(costs):
-    y = Inches(1.85) + i * Inches(0.53)
+for i, (name, usage, cost, basis, sc, sf) in enumerate(costs):
+    y = Inches(2.36) + i * Inches(0.54)
     if i % 2 == 0:
-        add_rect(s, Inches(0.5), y, Inches(12.3), Inches(0.53), fill=RGBColor(0x14,0x18,0x22))
-    add_text(s, name,  cols_c[0], y+Inches(0.08), Inches(3.3), Inches(0.38),
-             size=Pt(12), color=clr, bold=True)
-    add_text(s, usage, cols_c[1], y+Inches(0.08), Inches(3.0), Inches(0.38),
-             size=Pt(11), color=LIGHT_GRAY)
-    add_text(s, cost,  cols_c[2], y+Inches(0.08), Inches(1.7), Inches(0.38),
-             size=Pt(12), bold=True, color=ACCENT_GREEN)
-    add_text(s, basis, cols_c[3], y+Inches(0.08), Inches(3.0), Inches(0.38),
-             size=Pt(10), color=MID_GRAY)
+        rect(s, Inches(0.55), y, Inches(12.2), Inches(0.54), fill=SURFACE)
+    rect(s, Inches(0.55), y, Inches(0.04), Inches(0.54), fill=sc)
+    txt(s, name,  Inches(0.72), y + Inches(0.12), Inches(2.2), Inches(0.3),
+        size=Pt(11.5), bold=True, color=sc)
+    txt(s, usage, Inches(3.1),  y + Inches(0.12), Inches(3.5), Inches(0.3),
+        size=Pt(11), color=T2)
+    txt(s, cost,  Inches(6.8),  y + Inches(0.12), Inches(1.8), Inches(0.3),
+        size=Pt(12), bold=True, color=SAGE_D if cost == "$0.00" else T1)
+    txt(s, basis, Inches(9.0),  y + Inches(0.12), Inches(3.5), Inches(0.3),
+        size=Pt(10.5), color=TM)
 
-# Total bar
-add_rect(s, Inches(0.5), Inches(6.3), Inches(12.3), Inches(0.5), fill=DIM, line=ACCENT_GREEN, line_w=Pt(1.2))
-add_text(s, "TOTAL MONTHLY COST:", Inches(0.7), Inches(6.35), Inches(5), Inches(0.38),
-         size=Pt(14), bold=True, color=WHITE)
-add_text(s, "~$0.05 / month", Inches(5.8), Inches(6.35), Inches(4), Inches(0.38),
-         size=Pt(18), bold=True, color=ACCENT_GREEN)
-add_text(s, "≈ ₹4 per month", Inches(10.0), Inches(6.38), Inches(2.5), Inches(0.3),
-         size=Pt(11), color=LIGHT_GRAY, italic=True)
-
-add_text(s, "Scales to 5,000 hires/month for just ~$5.00",
-         Inches(0.7), Inches(6.9), Inches(12), Inches(0.3),
-         size=Pt(11), color=MID_GRAY, italic=True, align=PP_ALIGN.CENTER)
+# Total
+rect(s, Inches(0.55), Inches(6.74), Inches(12.2), Inches(0.5), fill=SAGE_L,
+     line=SAGE, line_w=Pt(1))
+txt(s, "Total monthly cost:", Inches(0.72), Inches(6.82), Inches(5), Inches(0.32),
+    size=Pt(12), bold=True, color=SAGE_D)
+txt(s, "~$0.05 / month  (≈ ₹4)",
+    Inches(5.5), Inches(6.82), Inches(5), Inches(0.32),
+    size=Pt(15), bold=True, color=SAGE_D)
+txt(s, "Scales to 5,000 hires/month for ~$5.00",
+    Inches(10.5), Inches(6.86), Inches(2.5), Inches(0.26),
+    size=Pt(10), color=TM, italic=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SLIDE 13 — THANK YOU / CLOSING
+# SLIDE 13 — CLOSING
 # ══════════════════════════════════════════════════════════════════════════════
 s = prs.slides.add_slide(blank)
 bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=SAGE)
 
-add_rect(s, 0, 0, W, Inches(0.006), fill=ACCENT_GREEN)
-add_rect(s, 0, H-Inches(0.006), W, Inches(0.006), fill=ACCENT_TEAL)
+# Right block
+rect(s, Inches(8.5), 0, Inches(4.83), H, fill=MUTED)
 
-circ = s.shapes.add_shape(9, Inches(8.0), Inches(-1.5), Inches(7), Inches(7))
-circ.fill.solid(); circ.fill.fore_color.rgb = RGBColor(0x12,0x1A,0x28)
-circ.line.fill.background()
+logo_mark(s, Inches(0.65), Inches(1.8), Inches(0.6))
+txt(s, "OnboardIQ", Inches(1.38), Inches(1.8), Inches(5), Inches(0.6),
+    size=Pt(15), bold=True, color=T1)
 
-add_text(s, "OnboardIQ", Inches(0.8), Inches(1.8), Inches(9), Inches(1.5),
-         size=Pt(72), bold=True, color=WHITE)
-add_text(s, "From offer letter to Day 1 login.", Inches(0.85), Inches(3.25),
-         Inches(9), Inches(0.6), size=Pt(26), color=ACCENT_TEAL)
-add_text(s, "Fully automated. Fully serverless.", Inches(0.85), Inches(3.82),
-         Inches(9), Inches(0.6), size=Pt(26), color=ACCENT_GREEN)
+txt(s, "From offer letter\nto Day 1 login.",
+    Inches(0.65), Inches(2.6), Inches(7.5), Inches(1.8),
+    size=Pt(48), bold=True, color=T1)
 
-divider(s, Inches(4.6))
+rect(s, Inches(0.65), Inches(4.3), Inches(1.4), Inches(0.04), fill=SAGE)
 
-# Links
+txt(s, "Fully automated. Fully serverless. Built on AWS.",
+    Inches(0.65), Inches(4.55), Inches(7.5), Inches(0.4),
+    size=Pt(15), color=T2)
+
+divider(s, Inches(5.3))
+
 links = [
-    ("🌐 Live App", "hrms-onboarding-frontend-dev.s3-website.ap-south-1.amazonaws.com"),
-    ("🔑 HR PIN", "1234"),
-    ("☁️ Region", "ap-south-1 · Mumbai"),
-    ("📦 Stack", "hrms-onboarding-stack"),
+    ("Live App", "hrms-onboarding-frontend-dev.s3-website.ap-south-1.amazonaws.com"),
+    ("HR PIN",   "1234"),
+    ("Region",   "ap-south-1  ·  Mumbai"),
+    ("GitHub",   "github.com/adil-khan-723/onboardiq-hrms-F13"),
 ]
-lx = Inches(0.85)
-for label, val in links:
-    add_text(s, label, lx, Inches(4.8), Inches(2.5), Inches(0.3),
-             size=Pt(11), color=MID_GRAY, bold=True)
-    add_text(s, val, lx, Inches(5.08), Inches(2.5), Inches(0.3),
-             size=Pt(11), color=ACCENT_GREEN)
-    lx += Inches(3.1)
+for li, (label, val) in enumerate(links):
+    ly = Inches(5.55) + li * Inches(0.42)
+    txt(s, label, Inches(0.65), ly, Inches(1.3), Inches(0.28),
+        size=Pt(10), bold=True, color=TM)
+    txt(s, val,   Inches(2.05), ly, Inches(5.8), Inches(0.28),
+        size=Pt(10.5), color=T1)
 
-add_text(s, "Built with  AWS Lambda · Step Functions · DynamoDB · S3 · Cognito · SES · SNS · API Gateway · React",
-         Inches(0.85), Inches(5.65), Inches(11.5), Inches(0.3),
-         size=Pt(11), color=MID_GRAY, italic=True, align=PP_ALIGN.CENTER)
+txt(s, "Thank You",
+    Inches(0.65), Inches(7.0), Inches(7.5), Inches(0.38),
+    size=Pt(11), color=TM, italic=True)
 
-add_text(s, "Thank You", Inches(0.85), Inches(6.1), Inches(11.5), Inches(0.85),
-         size=Pt(42), bold=True, color=ACCENT_GREEN, align=PP_ALIGN.CENTER)
+# Right block content
+txt(s, "Built with", Inches(9.0), Inches(1.8), Inches(3.8), Inches(0.3),
+    size=Pt(10), color=TM)
+services_r = [
+    ("AWS Lambda",        AMBER, AMBER_L),
+    ("Step Functions",    T2,    MUTED),
+    ("DynamoDB",          BLUE,  BLUE_L),
+    ("S3",                SAGE,  SAGE_L),
+    ("Cognito",           CORAL, CORAL_L),
+    ("SES  ·  SNS",       AMBER, AMBER_L),
+    ("API Gateway",       BLUE,  BLUE_L),
+    ("React 18 + Vite",   SAGE,  SAGE_L),
+    ("AWS SAM",           T2,    MUTED),
+]
+for si, (sname, sc, sf) in enumerate(services_r):
+    sy = Inches(2.25) + si * Inches(0.52)
+    rect(s, Inches(9.0), sy, Inches(3.6), Inches(0.38), fill=sf,
+         line=SUBTLE, line_w=Pt(0.5))
+    rect(s, Inches(9.0), sy, Inches(0.04), Inches(0.38), fill=sc)
+    txt(s, sname, Inches(9.18), sy + Inches(0.07), Inches(3.3), Inches(0.26),
+        size=Pt(11.5), bold=True, color=sc)
 
 
 # ── Save ──────────────────────────────────────────────────────────────────────
 out = "/Users/oggy/F13/project 4/deliverables/OnboardIQ-Presentation.pptx"
 prs.save(out)
 print("Saved:", out)
+print(f"Slides: {len(prs.slides)}")
