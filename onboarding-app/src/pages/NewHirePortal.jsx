@@ -63,6 +63,11 @@ function ProfileStep({ data, onChange }) {
         <div className={`${styles.formGroup} ${styles.full}`}>
           <label>Personal Email</label>
           <input type="email" placeholder="arjun.sharma@gmail.com" value={data.email} onChange={e => onChange('email', e.target.value)} />
+          {data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && (
+            <span style={{ color: '#e85d5d', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+              Please enter a valid email address (e.g. name@example.com)
+            </span>
+          )}
         </div>
         <div className={styles.formGroup}>
           <label>Phone Number</label>
@@ -268,8 +273,10 @@ export default function NewHirePortal() {
   const updateDoc = (k, f) => setDocs(d => ({ ...d, [k]: f }))
   const togglePolicy = (i) => setSigned(s => s.includes(i) ? s.filter(x => x !== i) : [...s, i])
 
+  const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
+
   const canNext = () => {
-    if (step === 0) return profile.firstName && profile.email && profile.department && profile.role
+    if (step === 0) return profile.firstName && isValidEmail(profile.email) && profile.department && profile.role
     if (step === 1) return docs.idProof && docs.degreeCert && docs.offerLetter
     if (step === 2) return signed.length === POLICIES.length
     return true
