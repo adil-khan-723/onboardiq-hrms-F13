@@ -1,0 +1,25 @@
+Smart Employee Onboarding & Identity Service (8 days)
+Overview: Build a fully automated digital onboarding system that handles everything from offer-letter acceptance to Day 1 readiness — provisioning accounts, collecting documents, assigning equipment, and sending scheduled welcome comms. This is the identity spine of the HRMS: it creates the canonical employee record that every other service will reference.
+Detailed Tasks:
+1.	Employee Record & Identity:
+○	On form submission, a Lambda function creates an employee profile in DynamoDB (PK: employee_id, auto-generated UUID).
+○	Provision a Cognito user account for the new hire with temporary credentials; send login link via SES.
+○	Store department, role, manager, joining date, and employment type as structured attributes.
+2.	Onboarding Workflow Engine:
+○	Use AWS Step Functions to model the multi-stage onboarding checklist: Document Collection → IT Provisioning → Policy Sign-off → Manager Intro.
+○	Each stage triggers a Lambda; incomplete stages auto-send reminder emails via SES after 24 hours.
+○	Track completion status per stage in DynamoDB; expose a progress API via API Gateway.
+3.	Document Collection:
+○	New hire submits ID proof, degree certificate, and signed offer letter via a web form; files stored in S3 with server-side encryption.
+○	Lambda validates file type and size on upload; flags missing documents in the workflow state.
+○	HR admin gets an SNS notification when all documents are received and verified.
+4.	Frontend:
+○	A two-view web app hosted on S3: (1) New hire onboarding portal, (2) HR admin dashboard showing pipeline status per new hire.
+○	Progress bar per onboarding stage; colour-coded status (pending / in-progress / complete).
+5.	Deliverables:
+○	Working onboarding flow with Step Functions execution history screenshots.
+○	ER diagram of the DynamoDB employee schema.
+○	Video demo: full new-hire journey from form fill to Day 1 login.
+○	Cost estimate for 50 onboarding events per month.
+
+build me a claude.md file for this project this is my internship project end to end
