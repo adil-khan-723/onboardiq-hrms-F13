@@ -1,0 +1,21 @@
+version = 0.1
+
+[default]
+[default.global.parameters]
+stack_name = "hrms-onboarding-stack"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+confirm_changeset = false
+resolve_s3 = true
+region = "ap-south-1"
+parameter_overrides = [
+  "SESFromEmail=adilk81054@gmail.com",
+  "HREmail=adilk3682@gmail.com",
+  "Environment=dev",
+  "FrontendUrl=https://hrms-onboarding-frontend-dev.s3-website.ap-south-1.amazonaws.com"
+]
