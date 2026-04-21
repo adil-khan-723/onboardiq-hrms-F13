@@ -34,3 +34,6 @@ Thumbs.db
 # Python cache (build scripts)
 __pycache__/
 *.pyc
+
+# Graphify knowledge graph output
+graphify-out/
