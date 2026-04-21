@@ -8,6 +8,7 @@ Globals:
     Architectures: [arm64]
     Timeout: 30
     MemorySize: 256
+    Tracing: Active
     Environment:
       Variables:
         EMPLOYEE_TABLE: !Ref EmployeeTable
@@ -353,6 +354,9 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: [ses:SendEmail, ses:SendRawEmail]
+              Resource: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+            - Effect: Allow
+              Action: [xray:PutTraceSegments, xray:PutTelemetryRecords]
               Resource: '*'
 
   StageITProvisioningFunction:
@@ -377,6 +381,9 @@ Resources:
               Resource: !GetAtt EmployeeCognitoUserPool.Arn
             - Effect: Allow
               Action: [ses:SendEmail, ses:SendRawEmail]
+              Resource: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+            - Effect: Allow
+              Action: [xray:PutTraceSegments, xray:PutTelemetryRecords]
               Resource: '*'
 
   StagePolicySignoffFunction:
@@ -392,6 +399,9 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: [ses:SendEmail, ses:SendRawEmail]
+              Resource: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+            - Effect: Allow
+              Action: [xray:PutTraceSegments, xray:PutTelemetryRecords]
               Resource: '*'
 
   StageManagerIntroFunction:
@@ -411,6 +421,9 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: [ses:SendEmail, ses:SendRawEmail]
+              Resource: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+            - Effect: Allow
+              Action: [xray:PutTraceSegments, xray:PutTelemetryRecords]
               Resource: '*'
 
   ReminderFunction:
@@ -428,6 +441,9 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: [ses:SendEmail, ses:SendRawEmail]
+              Resource: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+            - Effect: Allow
+              Action: [xray:PutTraceSegments, xray:PutTelemetryRecords]
               Resource: '*'
 
 # ─────────────────────────────────────────────
@@ -507,6 +523,9 @@ Resources:
               Resource: !Ref OnboardingStateMachine
             - Effect: Allow
               Action: [ses:SendEmail, ses:SendRawEmail]
+              Resource: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+            - Effect: Allow
+              Action: [xray:PutTraceSegments, xray:PutTelemetryRecords]
               Resource: '*'
       Events:
         CreateEmployee:
@@ -546,6 +565,9 @@ Resources:
                 - !GetAtt OnboardingWorkflowTable.Arn
                 - !GetAtt OnboardingStageTable.Arn
                 - !GetAtt DocumentTable.Arn
+            - Effect: Allow
+              Action: [xray:PutTraceSegments, xray:PutTelemetryRecords]
+              Resource: '*'
       Events:
         GetProgress:
           Type: Api
@@ -584,6 +606,10 @@ Resources:
             BucketName: !Sub hrms-onboarding-documents-${AWS::AccountId}-${Environment}
         - DynamoDBCrudPolicy:
             TableName: !Ref DocumentTable
+        - Statement:
+            - Effect: Allow
+              Action: [xray:PutTraceSegments, xray:PutTelemetryRecords]
+              Resource: '*'
       Events:
         GetUploadUrl:
           Type: Api
@@ -618,6 +644,9 @@ Resources:
               Resource: !Ref HRNotificationTopic
             - Effect: Allow
               Action: [ses:SendEmail, ses:SendRawEmail]
+              Resource: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+            - Effect: Allow
+              Action: [xray:PutTraceSegments, xray:PutTelemetryRecords]
               Resource: '*'
 
   DocumentUploadTriggerPermission:
@@ -658,6 +687,390 @@ Resources:
       ServiceToken: !GetAtt S3NotificationSetupFunction.Arn
       BucketName: !Ref DocumentBucket
       LambdaArn: !GetAtt DocumentUploadTriggerFunction.Arn
+
+# ─────────────────────────────────────────────
+# ALARM SIMULATION — deliberate error for demo
+# ─────────────────────────────────────────────
+
+  AlarmSimulationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: hrms-alarm-simulation
+      CodeUri: functions/alarm-simulation/
+      Handler: index.handler
+      Description: Deliberately throws errors to trigger CloudWatch alarms (demo only)
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: [xray:PutTraceSegments, xray:PutTelemetryRecords]
+              Resource: '*'
+
+# ─────────────────────────────────────────────
+# CLOUDWATCH ALARMS — error rate + duration
+# ─────────────────────────────────────────────
+
+  AlarmCreateEmployeeErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-create-employee-error-rate
+      AlarmDescription: CreateEmployee error rate exceeded 5%
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref CreateEmployeeFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmCreateEmployeeDuration:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-create-employee-duration
+      AlarmDescription: CreateEmployee p99 duration exceeded 3s
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref CreateEmployeeFunction
+      ExtendedStatistic: p99
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 3000
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmProgressApiErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-progress-api-error-rate
+      AlarmDescription: ProgressApi error rate exceeded 5%
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ProgressApiFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmProgressApiDuration:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-progress-api-duration
+      AlarmDescription: ProgressApi p99 duration exceeded 3s
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ProgressApiFunction
+      ExtendedStatistic: p99
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 3000
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmDocCollectionErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-doc-collection-error-rate
+      AlarmDescription: DocumentCollection error rate exceeded 5%
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref StageDocumentCollectionFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmDocCollectionDuration:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-doc-collection-duration
+      AlarmDescription: DocumentCollection p99 duration exceeded 3s
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref StageDocumentCollectionFunction
+      ExtendedStatistic: p99
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 3000
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmITProvisioningErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-it-provisioning-error-rate
+      AlarmDescription: ITProvisioning error rate exceeded 5%
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref StageITProvisioningFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmITProvisioningDuration:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-it-provisioning-duration
+      AlarmDescription: ITProvisioning p99 duration exceeded 3s
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref StageITProvisioningFunction
+      ExtendedStatistic: p99
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 3000
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmPolicySignoffErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-policy-signoff-error-rate
+      AlarmDescription: PolicySignoff error rate exceeded 5%
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref StagePolicySignoffFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmPolicySignoffDuration:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-policy-signoff-duration
+      AlarmDescription: PolicySignoff p99 duration exceeded 3s
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref StagePolicySignoffFunction
+      ExtendedStatistic: p99
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 3000
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmManagerIntroErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-manager-intro-error-rate
+      AlarmDescription: ManagerIntro error rate exceeded 5%
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref StageManagerIntroFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmManagerIntroDuration:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-manager-intro-duration
+      AlarmDescription: ManagerIntro p99 duration exceeded 3s
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref StageManagerIntroFunction
+      ExtendedStatistic: p99
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 3000
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmSimulationErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-alarm-simulation-error-rate
+      AlarmDescription: AlarmSimulation error rate — for demo triggering
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AlarmSimulationFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+  AlarmSimulationDuration:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: hrms-alarm-simulation-duration
+      AlarmDescription: AlarmSimulation duration exceeded 3s
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AlarmSimulationFunction
+      ExtendedStatistic: p99
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 3000
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref HRNotificationTopic
+
+# ─────────────────────────────────────────────
+# CLOUDWATCH DASHBOARD
+# ─────────────────────────────────────────────
+
+  OnboardingDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: hrms-onboarding-observability
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0, "y": 0, "width": 12, "height": 6,
+              "properties": {
+                "title": "Lambda Invocations — All Functions",
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                  ["AWS/Lambda", "Invocations", "FunctionName", "hrms-create-employee", {"label": "CreateEmployee"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "hrms-progress-api", {"label": "ProgressApi"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "hrms-stage-document-collection", {"label": "DocCollection"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "hrms-stage-it-provisioning", {"label": "ITProvisioning"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "hrms-stage-policy-signoff", {"label": "PolicySignoff"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "hrms-stage-manager-intro", {"label": "ManagerIntro"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "hrms-send-reminder", {"label": "Reminder"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "hrms-document-upload-trigger", {"label": "UploadTrigger"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "hrms-document-upload-url", {"label": "UploadUrl"}],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "hrms-alarm-simulation", {"label": "AlarmSim"}]
+                ],
+                "period": 60,
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12, "y": 0, "width": 12, "height": 6,
+              "properties": {
+                "title": "Lambda Errors — All Functions",
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                  ["AWS/Lambda", "Errors", "FunctionName", "hrms-create-employee", {"label": "CreateEmployee", "color": "#d62728"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "hrms-progress-api", {"label": "ProgressApi", "color": "#ff7f0e"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "hrms-stage-document-collection", {"label": "DocCollection", "color": "#9467bd"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "hrms-stage-it-provisioning", {"label": "ITProvisioning", "color": "#8c564b"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "hrms-stage-policy-signoff", {"label": "PolicySignoff", "color": "#e377c2"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "hrms-stage-manager-intro", {"label": "ManagerIntro", "color": "#bcbd22"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "hrms-send-reminder", {"label": "Reminder", "color": "#17becf"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "hrms-document-upload-trigger", {"label": "UploadTrigger", "color": "#1f77b4"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "hrms-document-upload-url", {"label": "UploadUrl", "color": "#2ca02c"}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "hrms-alarm-simulation", {"label": "AlarmSim", "color": "#ff0000"}]
+                ],
+                "period": 60,
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0, "y": 6, "width": 12, "height": 6,
+              "properties": {
+                "title": "Lambda Duration p99 — All Functions",
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "hrms-create-employee", {"stat": "p99", "label": "CreateEmployee"}],
+                  ["AWS/Lambda", "Duration", "FunctionName", "hrms-progress-api", {"stat": "p99", "label": "ProgressApi"}],
+                  ["AWS/Lambda", "Duration", "FunctionName", "hrms-stage-document-collection", {"stat": "p99", "label": "DocCollection"}],
+                  ["AWS/Lambda", "Duration", "FunctionName", "hrms-stage-it-provisioning", {"stat": "p99", "label": "ITProvisioning"}],
+                  ["AWS/Lambda", "Duration", "FunctionName", "hrms-stage-policy-signoff", {"stat": "p99", "label": "PolicySignoff"}],
+                  ["AWS/Lambda", "Duration", "FunctionName", "hrms-stage-manager-intro", {"stat": "p99", "label": "ManagerIntro"}]
+                ],
+                "period": 60,
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "alarm",
+              "x": 12, "y": 6, "width": 12, "height": 6,
+              "properties": {
+                "title": "Active Alarms",
+                "alarms": [
+                  "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:hrms-create-employee-error-rate",
+                  "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:hrms-create-employee-duration",
+                  "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:hrms-progress-api-error-rate",
+                  "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:hrms-progress-api-duration",
+                  "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:hrms-doc-collection-error-rate",
+                  "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:hrms-it-provisioning-error-rate",
+                  "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:hrms-policy-signoff-error-rate",
+                  "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:hrms-manager-intro-error-rate",
+                  "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:hrms-alarm-simulation-error-rate"
+                ]
+              }
+            }
+          ]
+        }
 
 # ─────────────────────────────────────────────
 # OUTPUTS
