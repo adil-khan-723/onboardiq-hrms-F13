@@ -888,6 +888,63 @@ for si, (sname, sc, sf) in enumerate(services_r):
 
 SS_DIR = "/Users/oggy/F13/project 4/docs/observability/screenshots"
 
+# ══════════════════════════════════════════════════════════════════════════════
+# SLIDE 14 — OBSERVABILITY DEMO WALKTHROUGH
+# ══════════════════════════════════════════════════════════════════════════════
+s = prs.slides.add_slide(blank)
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=SAGE)
+page_header(s, "Demo Walkthrough — Observability & Security",
+            "Requirement 2 · follow these steps exactly during the presentation.",
+            tag="DEMO  OBS")
+
+rect(s, Inches(0.55), Inches(1.98), Inches(12.2), Inches(0.34), fill=SAGE_L,
+     line=SUBTLE, line_w=Pt(0.75))
+txt(s, "Key line:  Every change — X-Ray, alarms, IAM hardening — is infrastructure as code in template.yaml. One sam deploy applies everything.",
+    Inches(0.72), Inches(2.02), Inches(12.0), Inches(0.26),
+    size=Pt(10), bold=True, color=SAGE_D)
+
+obs_steps = [
+    ("O1", "X-Ray Service Map",
+     "AWS Console → X-Ray → Service Map · Click any Lambda node → show trace with latency + downstream calls.\n"
+     "Say: 'Active tracing on all 10 Lambdas via SAM Globals — zero code changes required.'",
+     SAGE, SAGE_L),
+    ("O2", "CloudWatch Dashboard",
+     "CloudWatch → Dashboards → hrms-onboarding-observability · Point to 4 widgets: invocations, errors, p99 duration, alarm status.\n"
+     "Say: 'One unified dashboard — built as IaC, deploys automatically with sam deploy.'",
+     SAGE, SAGE_L),
+    ("O3", "Trigger Alarm Live",
+     "Lambda → hrms-alarm-simulation → Test (empty JSON {}) · Switch to CloudWatch → Alarms → watch flip to ALARM (red) in 60s.\n"
+     "Say: '12 alarms defined — error rate >5% and p99 >3s per function, all wired to SNS.'",
+     CORAL, CORAL_L),
+    ("O4", "Show SNS Email",
+     "Open adilk81054@gmail.com → show alarm email: state OK → ALARM, threshold crossed, SNS topic hrms-hr-notifications.\n"
+     "Say: 'Alert delivered to team email automatically — no manual monitoring needed.'",
+     AMBER, AMBER_L),
+    ("O5", "IAM Hardening",
+     "IAM → Roles → hrms-stage-document-collection-* → show SES resource: arn:aws:ses:<region>:<account>:identity/* not '*'.\n"
+     "Say: 'Scoped SES from wildcard to account-specific identity ARN across all 7 Lambdas.'",
+     BLUE, BLUE_L),
+    ("O6", "Security Posture Check",
+     "S3 bucket → Properties → encryption AES-256 ✓ · Public access → all 4 blocked ✓ · DynamoDB → table → SSEEnabled ✓\n"
+     "Say: 'Encryption at rest, public access blocked, HTTPS-only bucket policy — all in template.yaml.'",
+     SAGE, SAGE_L),
+    ("O7", "Trusted Advisor",
+     "AWS Console → Trusted Advisor → show 0 critical findings screenshot.\n"
+     "Say: 'Free checks passed. Full suite needs Business plan — but the security posture is clean.'",
+     T2, MUTED),
+]
+
+for i, (tag, title, detail, tc, tf) in enumerate(obs_steps):
+    y = Inches(2.48) + i * Inches(0.66)
+    rect(s, Inches(0.55), y, Inches(0.36), Inches(0.36), fill=tf, line=tc, line_w=Pt(1))
+    txt(s, tag, Inches(0.55), y, Inches(0.36), Inches(0.36),
+        size=Pt(9), bold=True, color=tc, align=PP_ALIGN.CENTER)
+    txt(s, title, Inches(1.05), y, Inches(2.8), Inches(0.24),
+        size=Pt(11.5), bold=True, color=T1)
+    txt(s, detail, Inches(1.05), y + Inches(0.24), Inches(11.6), Inches(0.38),
+        size=Pt(10), color=T2)
+
 def ss_slide(title, subtitle, tag, img_path, caption, accent=SAGE, tag_fill=SAGE_L):
     s = prs.slides.add_slide(blank)
     bg(s)
