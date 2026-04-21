@@ -886,6 +886,233 @@ for si, (sname, sc, sf) in enumerate(services_r):
         size=Pt(11.5), bold=True, color=sc)
 
 
+SS_DIR = "/Users/oggy/F13/project 4/docs/observability/screenshots"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SLIDE 14 — OBSERVABILITY DEMO WALKTHROUGH
+# ══════════════════════════════════════════════════════════════════════════════
+s = prs.slides.add_slide(blank)
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=SAGE)
+page_header(s, "Demo Walkthrough — Observability & Security",
+            "Requirement 2 · follow these steps exactly during the presentation.",
+            tag="DEMO  OBS")
+
+rect(s, Inches(0.55), Inches(1.98), Inches(12.2), Inches(0.34), fill=SAGE_L,
+     line=SUBTLE, line_w=Pt(0.75))
+txt(s, "Key line:  Every change — X-Ray, alarms, IAM hardening — is infrastructure as code in template.yaml. One sam deploy applies everything.",
+    Inches(0.72), Inches(2.02), Inches(12.0), Inches(0.26),
+    size=Pt(10), bold=True, color=SAGE_D)
+
+obs_steps = [
+    ("O1", "X-Ray Service Map",
+     "AWS Console → X-Ray → Service Map · Click any Lambda node → show trace with latency + downstream calls.\n"
+     "Say: 'Active tracing on all 10 Lambdas via SAM Globals — zero code changes required.'",
+     SAGE, SAGE_L),
+    ("O2", "CloudWatch Dashboard",
+     "CloudWatch → Dashboards → hrms-onboarding-observability · Point to 4 widgets: invocations, errors, p99 duration, alarm status.\n"
+     "Say: 'One unified dashboard — built as IaC, deploys automatically with sam deploy.'",
+     SAGE, SAGE_L),
+    ("O3", "Trigger Alarm Live",
+     "Lambda → hrms-alarm-simulation → Test (empty JSON {}) · Switch to CloudWatch → Alarms → watch flip to ALARM (red) in 60s.\n"
+     "Say: '12 alarms defined — error rate >5% and p99 >3s per function, all wired to SNS.'",
+     CORAL, CORAL_L),
+    ("O4", "Show SNS Email",
+     "Open adilk81054@gmail.com → show alarm email: state OK → ALARM, threshold crossed, SNS topic hrms-hr-notifications.\n"
+     "Say: 'Alert delivered to team email automatically — no manual monitoring needed.'",
+     AMBER, AMBER_L),
+    ("O5", "IAM Hardening",
+     "IAM → Roles → hrms-stage-document-collection-* → show SES resource: arn:aws:ses:<region>:<account>:identity/* not '*'.\n"
+     "Say: 'Scoped SES from wildcard to account-specific identity ARN across all 7 Lambdas.'",
+     BLUE, BLUE_L),
+    ("O6", "Security Posture Check",
+     "S3 bucket → Properties → encryption AES-256 ✓ · Public access → all 4 blocked ✓ · DynamoDB → table → SSEEnabled ✓\n"
+     "Say: 'Encryption at rest, public access blocked, HTTPS-only bucket policy — all in template.yaml.'",
+     SAGE, SAGE_L),
+    ("O7", "Trusted Advisor",
+     "AWS Console → Trusted Advisor → show 0 critical findings screenshot.\n"
+     "Say: 'Free checks passed. Full suite needs Business plan — but the security posture is clean.'",
+     T2, MUTED),
+]
+
+for i, (tag, title, detail, tc, tf) in enumerate(obs_steps):
+    y = Inches(2.48) + i * Inches(0.66)
+    rect(s, Inches(0.55), y, Inches(0.36), Inches(0.36), fill=tf, line=tc, line_w=Pt(1))
+    txt(s, tag, Inches(0.55), y, Inches(0.36), Inches(0.36),
+        size=Pt(9), bold=True, color=tc, align=PP_ALIGN.CENTER)
+    txt(s, title, Inches(1.05), y, Inches(2.8), Inches(0.24),
+        size=Pt(11.5), bold=True, color=T1)
+    txt(s, detail, Inches(1.05), y + Inches(0.24), Inches(11.6), Inches(0.38),
+        size=Pt(10), color=T2)
+
+def ss_slide(title, subtitle, tag, img_path, caption, accent=SAGE, tag_fill=SAGE_L):
+    s = prs.slides.add_slide(blank)
+    bg(s)
+    rect(s, 0, 0, Inches(0.04), H, fill=accent)
+    page_header(s, title, subtitle, tag=tag, tag_color=accent, tag_fill=tag_fill)
+    # Screenshot image — full width below header
+    pic = s.shapes.add_picture(img_path, Inches(0.55), Inches(1.95),
+                               Inches(12.2), Inches(5.1))
+    # Caption bar
+    rect(s, Inches(0.55), Inches(7.08), Inches(12.2), Inches(0.3), fill=tag_fill)
+    txt(s, caption, Inches(0.72), Inches(7.1), Inches(12.0), Inches(0.26),
+        size=Pt(9.5), color=accent, italic=True)
+    return s
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SLIDE 14 — CLOUDWATCH DASHBOARD (screenshot)
+# ══════════════════════════════════════════════════════════════════════════════
+ss_slide(
+    "CloudWatch Dashboard — Live",
+    "hrms-onboarding-observability · 4 widgets · all Lambda functions · ap-south-1",
+    "OBSERVABILITY",
+    f"{SS_DIR}/dashboard.png",
+    "Dashboard: Lambda Invocations · Lambda Errors · p99 Duration · Active Alarms — all 12 alarms green except demo alarm",
+)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SLIDE 15 — TRIGGERED ALARM (screenshot)
+# ══════════════════════════════════════════════════════════════════════════════
+ss_slide(
+    "Triggered Alarm Demo",
+    "hrms-alarm-simulation-error-rate · ALARM state · 6 deliberate errors fired",
+    "ALARM DEMO",
+    f"{SS_DIR}/alarm.png",
+    "Alarm triggered at 21:30 IST · 6 errors > threshold of 1 · state: OK → ALARM · SNS email dispatched automatically",
+    accent=CORAL, tag_fill=CORAL_L,
+)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SLIDE 16 — SNS EMAIL RECEIPT (screenshot)
+# ══════════════════════════════════════════════════════════════════════════════
+ss_slide(
+    "SNS Alarm Email — Received",
+    "AWS CloudWatch → SNS → adilk81054@gmail.com · state change OK → ALARM",
+    "ALERT EMAIL",
+    f"{SS_DIR}/email.png",
+    "Email received at 16:24:21 UTC · Alarm: hrms-alarm-simulation-error-rate · SNS Topic: hrms-hr-notifications · Account: 736786104206",
+    accent=AMBER, tag_fill=AMBER_L,
+)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SLIDE 17 — TRUSTED ADVISOR (screenshot)
+# ══════════════════════════════════════════════════════════════════════════════
+ss_slide(
+    "AWS Trusted Advisor",
+    "Free checks run — 0 critical findings · all security posture checks passed",
+    "SECURITY",
+    f"{SS_DIR}/trusted.png",
+    "Basic support plan: full check suite requires Business/Enterprise plan · S3 public access blocked · DynamoDB SSE enabled · IAM scoped",
+)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SLIDE 18 — IAM HARDENING SUMMARY
+# ══════════════════════════════════════════════════════════════════════════════
+s = prs.slides.add_slide(blank)
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=CORAL)
+page_header(s, "IAM Security Hardening",
+            "Before & after — SES permissions scoped across all Lambda functions.",
+            tag="IAM AUDIT", tag_color=CORAL, tag_fill=CORAL_L)
+
+# Before column
+rect(s, Inches(0.55), Inches(2.0), Inches(5.9), Inches(0.36), fill=CORAL_L)
+txt(s, "BEFORE  —  Overly broad", Inches(0.72), Inches(2.05), Inches(5.6), Inches(0.26),
+    size=Pt(11), bold=True, color=CORAL)
+
+before_items = [
+    ("hrms-stage-document-collection", "ses:SendEmail / ses:SendRawEmail", "Resource: '*'"),
+    ("hrms-create-employee",           "ses:SendEmail / ses:SendRawEmail", "Resource: '*'"),
+    ("hrms-stage-it-provisioning",     "ses:SendEmail / ses:SendRawEmail", "Resource: '*'"),
+    ("hrms-stage-policy-signoff",      "ses:SendEmail / ses:SendRawEmail", "Resource: '*'"),
+    ("hrms-stage-manager-intro",       "ses:SendEmail / ses:SendRawEmail", "Resource: '*'"),
+    ("hrms-send-reminder",             "ses:SendEmail / ses:SendRawEmail", "Resource: '*'"),
+    ("hrms-document-upload-trigger",   "ses:SendEmail / ses:SendRawEmail", "Resource: '*'"),
+]
+for i, (fn, action, resource) in enumerate(before_items):
+    y = Inches(2.44) + i * Inches(0.6)
+    rect(s, Inches(0.55), y, Inches(5.9), Inches(0.52), fill=SURFACE,
+         line=SUBTLE, line_w=Pt(0.75))
+    rect(s, Inches(0.55), y, Inches(0.04), Inches(0.52), fill=CORAL)
+    txt(s, fn,       Inches(0.72), y + Inches(0.04), Inches(5.5), Inches(0.22),
+        size=Pt(9.5), bold=True, color=T1)
+    txt(s, f"{action}  ·  {resource}", Inches(0.72), y + Inches(0.26), Inches(5.5), Inches(0.22),
+        size=Pt(9), color=CORAL)
+
+# After column
+rect(s, Inches(6.85), Inches(2.0), Inches(5.9), Inches(0.36), fill=SAGE_L)
+txt(s, "AFTER  —  Least privilege", Inches(7.02), Inches(2.05), Inches(5.6), Inches(0.26),
+    size=Pt(11), bold=True, color=SAGE_D)
+
+after_resource = "arn:aws:ses:<region>:<account>:identity/*"
+for i, (fn, action, _) in enumerate(before_items):
+    y = Inches(2.44) + i * Inches(0.6)
+    rect(s, Inches(6.85), y, Inches(5.9), Inches(0.52), fill=SURFACE,
+         line=SUBTLE, line_w=Pt(0.75))
+    rect(s, Inches(6.85), y, Inches(0.04), Inches(0.52), fill=SAGE)
+    txt(s, fn,       Inches(7.02), y + Inches(0.04), Inches(5.5), Inches(0.22),
+        size=Pt(9.5), bold=True, color=T1)
+    txt(s, f"{action}  ·  {after_resource}", Inches(7.02), y + Inches(0.26), Inches(5.5), Inches(0.22),
+        size=Pt(9), color=SAGE_D)
+
+divider(s, Inches(6.7))
+txt(s, "Also added: xray:PutTraceSegments + xray:PutTelemetryRecords on all Lambdas · Cognito + Step Functions were already resource-scoped ✓",
+    Inches(0.55), Inches(6.82), Inches(12.2), Inches(0.28),
+    size=Pt(10), color=TM, italic=True, align=PP_ALIGN.CENTER)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SLIDE 19 — COST ESTIMATE (observability)
+# ══════════════════════════════════════════════════════════════════════════════
+s = prs.slides.add_slide(blank)
+bg(s)
+rect(s, 0, 0, Inches(0.04), H, fill=SAGE)
+page_header(s, "Cost Estimate — 50 Users / Day",
+            "All services itemised · ap-south-1 · April 2026 · includes observability layer.",
+            tag="COST", tag_color=SAGE, tag_fill=SAGE_L)
+
+costs2 = [
+    ("Lambda",         "31,000 invocations/mo",   "$0.00",  "Within 400K GB-s free tier",      SAGE,  SAGE_L),
+    ("API Gateway",    "~4,650 requests/mo",       "$0.02",  "$3.50 per million requests",       BLUE,  BLUE_L),
+    ("DynamoDB",       "~231K reads + writes",     "$0.42",  "On-demand · SSE enabled",          BLUE,  BLUE_L),
+    ("S3",             "150 uploads · 300MB",      "$0.01",  "$0.025/GB · versioning on",        AMBER, AMBER_L),
+    ("SES",            "12,000 emails/mo",         "$1.20",  "$0.10 per 1,000 emails",           SAGE,  SAGE_L),
+    ("Cognito",        "50 MAUs",                  "$0.00",  "First 50,000 MAU free",            CORAL, CORAL_L),
+    ("Step Functions", "30,000 transitions/mo",    "$0.65",  "$0.000025 per transition",         T2,    MUTED),
+    ("CloudWatch",     "Logs + Dashboard + Alarms","$4.45",  "1 dashboard $3 · 12 alarms $1.20", AMBER, AMBER_L),
+    ("X-Ray",          "31,000 traces/mo",         "$0.00",  "Within 100K free-tier traces",     SAGE,  SAGE_L),
+    ("SNS",            "~200 notifications/mo",    "$0.00",  "First 1M free",                    T2,    MUTED),
+]
+
+rect(s, Inches(0.55), Inches(2.0), Inches(12.2), Inches(0.34), fill=MUTED)
+for xi, hdr in zip([Inches(0.72), Inches(3.0), Inches(6.6), Inches(8.6)],
+                   ["Service", "Monthly Usage", "Cost", "Pricing Basis"]):
+    txt(s, hdr, xi, Inches(2.05), Inches(2.5), Inches(0.26),
+        size=Pt(10), bold=True, color=T2)
+
+for i, (name, usage, cost, basis, sc, sf) in enumerate(costs2):
+    y = Inches(2.34) + i * Inches(0.48)
+    if i % 2 == 0:
+        rect(s, Inches(0.55), y, Inches(12.2), Inches(0.48), fill=SURFACE)
+    rect(s, Inches(0.55), y, Inches(0.04), Inches(0.48), fill=sc)
+    txt(s, name,  Inches(0.72), y + Inches(0.1), Inches(2.1), Inches(0.28),
+        size=Pt(11), bold=True, color=sc)
+    txt(s, usage, Inches(3.0),  y + Inches(0.1), Inches(3.4), Inches(0.28),
+        size=Pt(10.5), color=T2)
+    txt(s, cost,  Inches(6.6),  y + Inches(0.1), Inches(1.6), Inches(0.28),
+        size=Pt(11.5), bold=True, color=SAGE_D if cost == "$0.00" else T1)
+    txt(s, basis, Inches(8.6),  y + Inches(0.1), Inches(3.9), Inches(0.28),
+        size=Pt(10), color=TM)
+
+rect(s, Inches(0.55), Inches(7.04), Inches(12.2), Inches(0.36), fill=SAGE_L,
+     line=SAGE, line_w=Pt(1))
+txt(s, "Total monthly cost at 50 users/day:", Inches(0.72), Inches(7.12),
+    Inches(5), Inches(0.26), size=Pt(11), bold=True, color=SAGE_D)
+txt(s, "~$6.75 / month", Inches(6.0), Inches(7.1), Inches(4), Inches(0.28),
+    size=Pt(14), bold=True, color=SAGE_D)
+txt(s, "X-Ray + CloudWatch observability included",
+    Inches(10.0), Inches(7.14), Inches(2.6), Inches(0.22),
+    size=Pt(9.5), color=TM, italic=True)
+
 # ── Save ──────────────────────────────────────────────────────────────────────
 out = "/Users/oggy/F13/project 4/deliverables/OnboardIQ-Presentation.pptx"
 prs.save(out)
